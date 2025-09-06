@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './App.css';
+import { CSVImport } from './CSVImport';
 
 function App() {
+  const [csvData, setCsvData] = useState<any[]>([]);
+
+  const handleDataImported = (data: any[]) => {
+    setCsvData(data);
+    console.log('Imported data:', data);
+  };
+
   return (
     <div className="App">
       <header style={{
@@ -15,28 +23,20 @@ function App() {
       </header>
       
       <main style={{ padding: '2rem' }}>
-        <div style={{
-          background: '#f5f5f5',
-          padding: '2rem',
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
-          <h2>🚀 MVP Coming Soon</h2>
-          <p>Import GameChanger CSV → Generate Optimal Batting Orders</p>
-          
-          <button style={{
-            background: '#FFC107',
-            color: 'black',
-            padding: '1rem 2rem',
-            border: 'none',
+        <CSVImport onDataImported={handleDataImported} />
+        
+        {csvData.length > 0 && (
+          <div style={{
+            background: '#e8f5e8',
+            padding: '1rem',
             borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer'
+            marginTop: '1rem'
           }}>
-            Import CSV (Coming Soon)
-          </button>
-        </div>
+            <h3>✅ CSV Imported Successfully!</h3>
+            <p>Found {csvData.length} rows of data</p>
+            <p>Check the browser console (F12) to see the data</p>
+          </div>
+        )}
       </main>
     </div>
   );
