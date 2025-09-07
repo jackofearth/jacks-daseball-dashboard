@@ -1,0 +1,131 @@
+#!/usr/bin/env node
+
+/**
+ * Automatic Backup System for Baseball Manager Dashboard Algorithm
+ * This script updates the algorithm-backup.txt file with current algorithm details
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+function updateAlgorithmBackup() {
+  const timestamp = new Date().toISOString().split('T')[0];
+  const time = new Date().toLocaleTimeString();
+  
+  const backupContent = `BASEBALL MANAGER DASHBOARD - BATTING ORDER ALGORITHM BACKUP
+================================================================
+Last Updated: ${timestamp} at ${time}
+Version: Enhanced Traditional Algorithm v2.0
+
+PLAYER INTERFACE:
+================
+interface Player {
+  name: string;
+  avg: number;           // Batting Average
+  obp: number;           // On-Base Percentage
+  slg: number;           // Slugging Percentage
+  ops: number;           // On-base Plus Slugging
+  sb: number;            // Stolen Bases
+  sbPercent: number;     // Stolen Base Percentage
+  bbK: number;           // Walks per Strikeout
+  contactPercent: number; // Contact Percentage
+  qabPercent: number;    // Quality At-Bat Percentage
+  baRisp: number;        // Batting Average with Runners in Scoring Position
+  twoOutRbi: number;     // 2-out RBI production
+  xbh: number;           // Extra-base hits
+  hr: number;            // Home runs
+  tb: number;            // Total bases
+}
+
+COLUMN DETECTION:
+================
+The algorithm automatically detects columns by searching for keywords in the first row's values:
+- Name columns: Contains "name", "first", or "last"
+- AVG column: Contains "AVG"
+- OBP column: Contains "OBP"
+- SLG column: Contains "SLG"
+- OPS column: Contains "OPS"
+- SB column: Contains "SB" (but not "SB%")
+- SB% column: Contains "SB%"
+- BB/K column: Contains "BB/K"
+- C% column: Contains "C%"
+- QAB% column: Contains "QAB%"
+- BA/RISP column: Contains "BA/RISP"
+- 2OUTRBI column: Contains "2OUTRBI"
+- XBH column: Contains "XBH"
+- HR column: Contains "HR"
+- TB column: Contains "TB"
+
+BATTING ORDER STRATEGY:
+======================
+
+1. LEAD-OFF (1st Position):
+   Weight Formula: OBP * 0.5 + SB% * 0.2 + Contact% * 0.2 + AVG * 0.1
+   Strategy: High on-base percentage is the top priority, with speed and contact as secondary factors.
+
+2. SECOND (2nd Position):
+   Weight Formula: Contact% * 0.4 + BA/RISP * 0.3 + AVG * 0.2 + QAB% * 0.1
+   Strategy: High contact rate with situational hitting ability to move runners.
+
+3. THIRD (3rd Position):
+   Weight Formula: OPS * 0.7 + QAB% * 0.3
+   Strategy: Best overall hitter with quality at-bats, often gets the most at-bats.
+
+4. CLEAN-UP (4th Position):
+   Weight Formula: SLG * 0.4 + 2OUTRBI * 0.3 + XBH * 0.2 + BA/RISP * 0.1
+   Strategy: Power hitter with clutch RBI production and extra-base hit ability.
+
+5. FIFTH Position:
+   Weight Formula: SLG * 0.4 + BA/RISP * 0.3 + OPS * 0.2 + 2OUTRBI * 0.1
+   Strategy: Second-best power hitter with clutch hitting ability.
+
+6-9. REMAINING Positions:
+   Strategy: Fill remaining spots by descending OPS order.
+
+ALGORITHM LOGIC:
+===============
+1. Parse CSV data and skip the first row (contains column names)
+2. Extract player stats using detected column names
+3. Filter players with valid names and batting stats
+4. Apply position-specific selection criteria
+5. Ensure no player is used twice
+6. Fill remaining positions by OPS ranking
+
+DISPLAY FEATURES:
+================
+- Shows player name and position number
+- Displays core stats: AVG, OBP, SLG
+- Shows additional stats when available: SB%, RISP, Contact%
+- Clean, numbered interface with baseball theming
+
+TECHNICAL NOTES:
+===============
+- Uses TypeScript interfaces for type safety
+- Handles missing or invalid data gracefully
+- Provides debug information when no batting order is generated
+- Automatically adapts to different CSV column structures
+- Fallback to calculated OPS if OPS column not found
+
+BACKUP CREATED: ${timestamp} at ${time}
+NEXT BACKUP: Will be updated with each algorithm change
+
+CHANGE LOG:
+==========
+- 2024-12-19: Initial enhanced algorithm with advanced stats
+- 2024-12-19: Updated lead-off weights: OBP 50%, SB% 20%
+- 2024-12-19: Added automatic backup system
+`;
+
+  const backupPath = path.join(__dirname, 'algorithm-backup.txt');
+  
+  try {
+    fs.writeFileSync(backupPath, backupContent, 'utf8');
+    console.log(`✅ Algorithm backup updated successfully at ${time}`);
+    console.log(`📁 Backup saved to: ${backupPath}`);
+  } catch (error) {
+    console.error('❌ Error updating backup:', error.message);
+  }
+}
+
+// Run the backup update
+updateAlgorithmBackup();

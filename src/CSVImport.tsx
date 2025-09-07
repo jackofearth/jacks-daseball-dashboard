@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 
 interface CSVImportProps {
-  onDataImported: (data: any[]) => void;
+  onDataImported: (data: any[], filename: string) => void;
 }
 
 export const CSVImport: React.FC<CSVImportProps> = ({ onDataImported }) => {
@@ -18,7 +18,7 @@ export const CSVImport: React.FC<CSVImportProps> = ({ onDataImported }) => {
       header: true,
       complete: (result) => {
         console.log('CSV data:', result.data);
-        onDataImported(result.data);
+        onDataImported(result.data, file.name);
         setIsLoading(false);
       },
       error: (error) => {
