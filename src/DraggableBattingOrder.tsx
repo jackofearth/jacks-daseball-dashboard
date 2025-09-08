@@ -18,12 +18,16 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Player } from './PlayerManager';
+import { Player, BattingOrderConfig, UserSettings } from './StorageService';
 
 interface DraggableBattingOrderProps {
   players: Player[];
   battingOrder: Player[];
   onBattingOrderChange: (order: Player[]) => void;
+  savedBattingOrders: BattingOrderConfig[];
+  onSaveBattingOrder: (config: BattingOrderConfig) => void;
+  settings: UserSettings;
+  onSettingsChange: (settings: UserSettings) => void;
 }
 
 interface SortablePlayerCardProps {
@@ -47,19 +51,7 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Role descriptions for top 5 positions
-  const getRoleDescription = (pos: number) => {
-    const roles = {
-      1: "🏃‍♂️ Table Setter - Gets on base, sees pitches, steals bases",
-      2: "🎯 Contact Specialist - Moves runners, handles bunts, situational hitting",
-      3: "⭐ Best Hitter - Highest OPS, most at-bats, drives in runs",
-      4: "💥 Clean-up Power - Home run threat, RBI machine, protects lineup",
-      5: "🔋 Second Power - Clutch hitting, protects clean-up, RBI production"
-    };
-    return roles[pos as keyof typeof roles] || "";
-  };
 
-  const roleDescription = getRoleDescription(position);
 
   return (
     <div
@@ -97,24 +89,6 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <strong>{player.name}</strong>
-          {position <= 5 && (
-            <span style={{ 
-              fontSize: '0.7em', 
-              color: '#007bff',
-              fontWeight: 'bold',
-              background: '#e3f2fd',
-              padding: '0.2rem 0.4rem',
-              borderRadius: '3px'
-            }}>
-              {roleDescription}
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: '0.8em', color: '#666' }}>
-          AVG: {player.avg.toFixed(3)} | OBP: {player.obp.toFixed(3)} | SLG: {player.slg.toFixed(3)}
-          {player.sbPercent > 0 && <span> | SB%: {(player.sbPercent * 100).toFixed(0)}%</span>}
-          {player.baRisp > 0 && <span> | RISP: {player.baRisp.toFixed(3)}</span>}
-          {player.contactPercent > 0 && <span> | Contact: {(player.contactPercent * 100).toFixed(0)}%</span>}
         </div>
       </div>
       <div style={{ 
@@ -130,8 +104,12 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
 
 export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({ 
   players, 
-  battingOrder,
-  onBattingOrderChange 
+  battingOrder, 
+  onBattingOrderChange,
+  savedBattingOrders,
+  onSaveBattingOrder,
+  settings,
+  onSettingsChange
 }) => {
 
   const sensors = useSensors(
@@ -169,11 +147,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     }
   };
 
-  const generateOptimalOrder = () => {
+  const generateLocalLeagueOrder = () => {
     if (players.length === 0) return;
 
-    // Use the same algorithm as the original BattingOrder component
-    const allPlayers = [...players];
+    // Filter out players with no meaningful stats (all zeros)
+    const playersWithStats = players.filter(player => 
+      player.avg > 0 || player.obp > 0 || player.slg > 0
+    );
+    
+    // If we have players with stats, use them; otherwise use all players
+    const allPlayers = playersWithStats.length > 0 ? playersWithStats : [...players];
     const optimalOrder: Player[] = new Array(9).fill(null);
     const usedPlayers = new Set<string>();
 
@@ -193,43 +176,43 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     // 1. Lead-off (1st): High OBP + Speed + Contact + Low K%
     const leadoff = findBestPlayer(player => 
       player.obp * 0.5 + 
-      player.sbPercent * 0.2 + 
-      player.contactPercent * 0.2 + 
+      (player.sb_percent || 0) * 0.2 + 
+      (player.contact_percent || 0) * 0.2 + 
       player.avg * 0.1
     );
     assignPlayer(0, leadoff);
 
     // 2. Second (2nd): High contact + Situational hitting + Can move runners
     const second = findBestPlayer(player => 
-      player.contactPercent * 0.4 + 
-      player.baRisp * 0.3 + 
+      (player.contact_percent || 0) * 0.4 + 
+      (player.ba_risp || 0) * 0.3 + 
       player.avg * 0.2 + 
-      player.qabPercent * 0.1
+      (player.qab_percent || 0) * 0.1
     );
     assignPlayer(1, second);
 
     // 3. Third (3rd): Best overall hitter (highest OPS + Quality at-bats)
     const third = findBestPlayer(player => 
       player.ops * 0.7 + 
-      player.qabPercent * 0.3
+      (player.qab_percent || 0) * 0.3
     );
     assignPlayer(2, third);
 
     // 4. Clean-up (4th): Power hitter + RBI production
     const cleanup = findBestPlayer(player => 
       player.slg * 0.4 + 
-      player.twoOutRbi * 0.3 + 
-      player.xbh * 0.2 + 
-      player.baRisp * 0.1
+      (player.two_out_rbi || 0) * 0.3 + 
+      (player.xbh || 0) * 0.2 + 
+      (player.ba_risp || 0) * 0.1
     );
     assignPlayer(3, cleanup);
 
     // 5. Fifth: Second best power + Clutch hitting
     const fifth = findBestPlayer(player => 
       player.slg * 0.4 + 
-      player.baRisp * 0.3 + 
+      (player.ba_risp || 0) * 0.3 + 
       player.ops * 0.2 + 
-      player.twoOutRbi * 0.1
+      (player.two_out_rbi || 0) * 0.1
     );
     assignPlayer(4, fifth);
 
@@ -246,6 +229,121 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
     const finalOrder = optimalOrder.filter(player => player !== null);
     onBattingOrderChange(finalOrder);
+    
+    // Show warning if we included players with no stats
+    const playersWithNoStats = finalOrder.filter(player => 
+      player.avg === 0 && player.obp === 0 && player.slg === 0
+    );
+    
+    if (playersWithNoStats.length > 0) {
+      alert(`⚠️ Warning: ${playersWithNoStats.length} player(s) with no meaningful stats were included in the batting order. Consider adding stats or removing these players.`);
+    }
+  };
+
+  const generateMLBOrder = () => {
+    if (players.length === 0) return;
+
+    // Filter out players with no meaningful stats (all zeros)
+    const playersWithStats = players.filter(player => 
+      player.avg > 0 || player.obp > 0 || player.slg > 0
+    );
+    
+    // If we have players with stats, use them; otherwise use all players
+    const playersToUse = playersWithStats.length > 0 ? playersWithStats : [...players];
+
+    // MLB Traditional Order Algorithm
+    const playerStats = playersToUse.map(p => ({
+      ...p,
+      ops: p.obp + p.slg,  // On-base + Slugging
+      contactScore: p.avg + p.obp,
+      speedScore: p.sb_percent || 0
+    }));
+
+    const order: { [key: number]: Player } = {};
+    const used = new Set<string>();
+    
+    // 1. LEADOFF - Highest OBP (gets on base most)
+    const leadoffCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.obp - a.obp);
+    if (leadoffCandidates.length > 0) {
+      order[1] = leadoffCandidates[0];
+      used.add(leadoffCandidates[0].id);
+    }
+
+    // 2. CONTACT HITTER - Best combo of AVG + speed
+    const contactCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => (b.avg + b.speedScore) - (a.avg + a.speedScore));
+    if (contactCandidates.length > 0) {
+      order[2] = contactCandidates[0];
+      used.add(contactCandidates[0].id);
+    }
+
+    // 3. BEST HITTER - Highest OPS overall
+    const bestHitterCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.ops - a.ops);
+    if (bestHitterCandidates.length > 0) {
+      order[3] = bestHitterCandidates[0];
+      used.add(bestHitterCandidates[0].id);
+    }
+
+    // 4. CLEANUP - Best power (highest SLG)
+    const cleanupCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.slg - a.slg);
+    if (cleanupCandidates.length > 0) {
+      order[4] = cleanupCandidates[0];
+      used.add(cleanupCandidates[0].id);
+    }
+
+    // 5. PROTECTION - Second best power hitter
+    const protectionCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.slg - a.slg);
+    if (protectionCandidates.length > 0) {
+      order[5] = protectionCandidates[0];
+      used.add(protectionCandidates[0].id);
+    }
+
+    // 6-8. DESCENDING ORDER - By OPS
+    const remainingByOPS = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.ops - a.ops);
+
+    for (let pos = 6; pos <= 8; pos++) {
+      if (remainingByOPS.length > pos - 6) {
+        order[pos] = remainingByOPS[pos - 6];
+        used.add(remainingByOPS[pos - 6].id);
+      }
+    }
+
+    // 9. PITCHER SPOT - Weakest hitter (lowest OPS)
+    const weakestCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => a.ops - b.ops);
+    if (weakestCandidates.length > 0) {
+      order[9] = weakestCandidates[0];
+      used.add(weakestCandidates[0].id);
+    }
+
+    // Convert to array format
+    const finalOrder = Object.keys(order)
+      .sort((a, b) => parseInt(a) - parseInt(b))
+      .map(key => order[parseInt(key)])
+      .filter(Boolean);
+
+    onBattingOrderChange(finalOrder);
+    
+    // Show warning if we included players with no stats
+    const playersWithNoStats = finalOrder.filter(player => 
+      player.avg === 0 && player.obp === 0 && player.slg === 0
+    );
+    
+    if (playersWithNoStats.length > 0) {
+      alert(`⚠️ Warning: ${playersWithNoStats.length} player(s) with no meaningful stats were included in the batting order. Consider adding stats or removing these players.`);
+    }
   };
 
   return (
@@ -259,7 +357,22 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         <h2>⚾ Batting Order</h2>
         <div>
           <button 
-            onClick={generateOptimalOrder}
+            onClick={generateMLBOrder}
+            style={{
+              background: '#28a745',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              marginRight: '0.5rem',
+              cursor: 'pointer'
+            }}
+            title="MLB-level traditional batting order strategy"
+          >
+            🏆 MLB-Level
+          </button>
+          <button 
+            onClick={generateLocalLeagueOrder}
             style={{
               background: '#007bff',
               color: 'white',
@@ -269,8 +382,9 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
               marginRight: '0.5rem',
               cursor: 'pointer'
             }}
+            title="Local league optimized batting order with advanced stats"
           >
-            🧠 Generate Optimal
+            🏟️ Local League
           </button>
           <button 
             onClick={clearBattingOrder}
@@ -292,7 +406,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       {/* Available Players */}
       <div style={{ marginBottom: '2rem' }}>
         <h3>Available Players ({players.length})</h3>
-        <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '0.5rem' }}>
+        <p style={{ fontSize: '0.9em', color: 'var(--theme-secondary)', marginBottom: '0.5rem' }}>
           Click to add to batting order • Drag from here to batting order below
         </p>
         <div style={{ 
@@ -336,15 +450,12 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                   }
                 }}
               >
-                <div style={{ fontWeight: 'bold', color: isInOrder ? '#6c757d' : '#007bff' }}>
+                <div style={{ fontWeight: 'bold', color: isInOrder ? 'var(--theme-secondary)' : 'var(--theme-primary)' }}>
                   {player.name}
                 </div>
-                <div style={{ fontSize: '0.8em', color: '#666' }}>
-                  OPS: {player.ops.toFixed(3)} | AVG: {player.avg.toFixed(3)}
-                </div>
-                {isInOrder && (
-                  <div style={{ fontSize: '0.7em', color: '#6c757d', fontStyle: 'italic' }}>
-                    Already in batting order
+                {(player.avg > 0 || player.ops > 0) && (
+                  <div style={{ fontSize: '0.8em', color: 'var(--theme-secondary)' }}>
+                    AVG: {player.avg.toFixed(3)} | OPS: {player.ops.toFixed(3)}
                   </div>
                 )}
               </div>
@@ -357,7 +468,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       <div>
         <h3>Current Batting Order ({battingOrder.length})</h3>
         {battingOrder.length === 0 ? (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>
+          <p style={{ color: 'var(--theme-secondary)', fontStyle: 'italic' }}>
             No players in batting order. Click "Generate Optimal" or drag players from above.
           </p>
         ) : (

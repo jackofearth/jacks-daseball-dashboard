@@ -1,7 +1,176 @@
+/* CSS Custom Properties for Theme Colors */
+:root {
+  --theme-primary: #007bff;
+  --theme-secondary: #6c757d;
+  --theme-accent: #28a745;
+}
+
 .App {
   text-align: center;
 }
 
+/* Theme-aware button styles */
+.theme-button-primary {
+  background-color: var(--theme-primary);
+  color: white;
+  border: 1px solid var(--theme-primary);
+}
+
+.theme-button-primary:hover {
+  background-color: color-mix(in srgb, var(--theme-primary) 85%, black);
+}
+
+.theme-button-secondary {
+  background-color: var(--theme-secondary);
+  color: white;
+  border: 1px solid var(--theme-secondary);
+}
+
+.theme-button-accent {
+  background-color: var(--theme-accent);
+  color: white;
+  border: 1px solid var(--theme-accent);
+}
+
+/* Theme-aware text colors */
+.theme-text-primary {
+  color: var(--theme-primary);
+}
+
+.theme-text-secondary {
+  color: var(--theme-secondary);
+}
+
+.theme-text-accent {
+  color: var(--theme-accent);
+}
+
+/* Theme-aware borders */
+.theme-border-primary {
+  border-color: var(--theme-primary);
+}
+
+.theme-border-secondary {
+  border-color: var(--theme-secondary);
+}
+
+.theme-border-accent {
+  border-color: var(--theme-accent);
+}
+
+/* Theme-aware backgrounds */
+.theme-bg-primary {
+  background-color: var(--theme-primary);
+}
+
+.theme-bg-secondary {
+  background-color: var(--theme-secondary);
+}
+
+.theme-bg-accent {
+  background-color: var(--theme-accent);
+}
+
+/* Theme-aware light backgrounds */
+.theme-bg-primary-light {
+  background-color: color-mix(in srgb, var(--theme-primary) 10%, white);
+  color: var(--theme-primary);
+}
+
+.theme-bg-secondary-light {
+  background-color: color-mix(in srgb, var(--theme-secondary) 10%, white);
+  color: var(--theme-secondary);
+}
+
+.theme-bg-accent-light {
+  background-color: color-mix(in srgb, var(--theme-accent) 10%, white);
+  color: var(--theme-accent);
+}
+
+/* Theme-aware borders with light backgrounds */
+.theme-border-primary-light {
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 30%, white);
+  background-color: color-mix(in srgb, var(--theme-primary) 5%, white);
+  color: var(--theme-primary);
+}
+
+.theme-border-secondary-light {
+  border: 1px solid color-mix(in srgb, var(--theme-secondary) 30%, white);
+  background-color: color-mix(in srgb, var(--theme-secondary) 5%, white);
+  color: var(--theme-secondary);
+}
+
+.theme-border-accent-light {
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 30%, white);
+  background-color: color-mix(in srgb, var(--theme-accent) 5%, white);
+  color: var(--theme-accent);
+}
+
+/* Theme-aware card styles */
+.theme-card {
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 20%, white);
+  background-color: color-mix(in srgb, var(--theme-primary) 3%, white);
+  border-radius: 8px;
+  color: var(--theme-primary);
+}
+
+.theme-card-secondary {
+  border: 1px solid color-mix(in srgb, var(--theme-secondary) 20%, white);
+  background-color: color-mix(in srgb, var(--theme-secondary) 3%, white);
+  border-radius: 8px;
+  color: var(--theme-secondary);
+}
+
+/* Theme-aware input styles */
+.theme-input {
+  border: 1px solid color-mix(in srgb, var(--theme-primary) 30%, white);
+  border-radius: 4px;
+}
+
+.theme-input:focus {
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-primary) 20%, transparent);
+  outline: none;
+}
+
+/* Theme-aware link styles */
+.theme-link {
+  color: var(--theme-primary);
+  text-decoration: none;
+}
+
+.theme-link:hover {
+  color: color-mix(in srgb, var(--theme-primary) 80%, black);
+  text-decoration: underline;
+}
+
+/* Accessibility improvements for light colors */
+.theme-text-yellow {
+  color: #b8860b; /* Dark goldenrod for better contrast */
+}
+
+.theme-text-light {
+  color: #333; /* Dark gray for better readability on light backgrounds */
+}
+
+/* Ensure good contrast for yellow backgrounds */
+.theme-bg-yellow {
+  background-color: #ffc107;
+  color: #000; /* Black text on yellow background */
+}
+
+.theme-bg-yellow-light {
+  background-color: color-mix(in srgb, #ffc107 10%, white);
+  color: #b8860b; /* Dark goldenrod text on light yellow background */
+}
+
+/* Ensure good contrast for white backgrounds */
+.theme-bg-white {
+  background-color: white;
+  color: #333; /* Dark gray text on white background */
+}
+
+/* Legacy styles for compatibility */
 .App-logo {
   height: 40vmin;
   pointer-events: none;

@@ -37,7 +37,17 @@ const BattingOrder: React.FC<BattingOrderProps> = ({ csvData }) => {
     const firstRow = csvData[0];
     const headerKeys = Object.keys(firstRow);
     
-    // Find which header key contains each stat name
+    // Find name columns - prioritize specific First/Last columns
+    const firstColumn = headerKeys.find(key => {
+      const value = firstRow[key];
+      return value && value.toLowerCase().includes('first');
+    });
+    
+    const lastColumn = headerKeys.find(key => {
+      const value = firstRow[key];
+      return value && value.toLowerCase().includes('last');
+    });
+    
     const nameColumns = headerKeys.filter(key => {
       const value = firstRow[key];
       return value && (value.toLowerCase().includes('name') || 
@@ -79,8 +89,29 @@ const BattingOrder: React.FC<BattingOrderProps> = ({ csvData }) => {
       })
       .map(row => {
         // Build name from available name columns
-        const nameParts = nameColumns.map(col => row[col]).filter(Boolean);
-        const name = nameParts.join(' ').trim();
+        let name;
+        
+        // Handle separate First/Last columns
+        if (firstColumn && lastColumn) {
+          const firstName = row[firstColumn] || '';
+          const lastName = row[lastColumn] || '';
+          name = `${firstName} ${lastName}`.trim();
+        } else {
+          // Handle combined name columns
+          const nameParts = nameColumns.map(col => row[col]).filter(Boolean);
+          const fullName = nameParts.join(' ').trim();
+          
+          if (fullName.includes(',')) {
+            // Format: "Last, First" - split by comma and reverse
+            const parts = fullName.split(',').map(p => p.trim());
+            const lastName = parts[0] || '';
+            const firstName = parts[1] || '';
+            name = `${firstName} ${lastName}`.trim();
+          } else {
+            // Format: "First Last" - use as is
+            name = fullName;
+          }
+        }
         
         // Get stats from actual column names
         const avg = avgColumn ? parseFloat(row[avgColumn]) || 0 : 0;
