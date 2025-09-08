@@ -59,14 +59,14 @@ export interface CSVFile {
 export interface BattingOrderConfig {
   id: string;
   name: string;
-  algorithm: 'mlb-level' | 'local-league';
+  algorithm: 'mlb-level' | 'jacks-custom-local-league';
   players: Player[];
   createdAt: string;
 }
 
 export interface UserSettings {
   theme: 'light' | 'dark';
-  defaultAlgorithm: 'mlb-level' | 'local-league';
+  defaultAlgorithm: 'mlb-level' | 'jacks-custom-local-league';
   autoSave: boolean;
   showRoleDescriptions: boolean;
   showAdvancedStats: boolean;
@@ -297,7 +297,7 @@ class StorageService {
       currentBattingOrder: [],
       settings: {
         theme: 'light',
-        defaultAlgorithm: 'local-league',
+        defaultAlgorithm: 'jacks-custom-local-league',
         autoSave: true,
         showRoleDescriptions: true,
         showAdvancedStats: false,

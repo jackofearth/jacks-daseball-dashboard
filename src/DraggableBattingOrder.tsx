@@ -141,14 +141,36 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     onBattingOrderChange(battingOrder.filter(p => p.id !== playerId));
   };
 
+  const movePlayerUp = (playerId: string) => {
+    const currentIndex = battingOrder.findIndex(p => p.id === playerId);
+    if (currentIndex > 0) {
+      const newOrder = [...battingOrder];
+      [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
+      onBattingOrderChange(newOrder);
+    }
+  };
+
+  const movePlayerDown = (playerId: string) => {
+    const currentIndex = battingOrder.findIndex(p => p.id === playerId);
+    if (currentIndex < battingOrder.length - 1) {
+      const newOrder = [...battingOrder];
+      [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
+      onBattingOrderChange(newOrder);
+    }
+  };
+
   const clearBattingOrder = () => {
     if (window.confirm('Are you sure you want to clear the batting order? (This will not affect your player list)')) {
       onBattingOrderChange([]);
     }
   };
 
-  const generateLocalLeagueOrder = () => {
-    if (players.length === 0) return;
+  const generateJacksCustomLocalLeagueOrder = () => {
+    console.log('generateJacksCustomLocalLeagueOrder called, players:', players.length);
+    if (players.length === 0) {
+      console.log('No players available for batting order generation');
+      return;
+    }
 
     // Filter out players with no meaningful stats (all zeros)
     const playersWithStats = players.filter(player => 
@@ -241,7 +263,11 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   };
 
   const generateMLBOrder = () => {
-    if (players.length === 0) return;
+    console.log('generateMLBOrder called, players:', players.length);
+    if (players.length === 0) {
+      console.log('No players available for batting order generation');
+      return;
+    }
 
     // Filter out players with no meaningful stats (all zeros)
     const playersWithStats = players.filter(player => 
@@ -347,78 +373,221 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   };
 
   return (
-    <div style={{ padding: '1rem' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '1rem'
-      }}>
-        <h2>⚾ Batting Order</h2>
-        <div>
-          <button 
-            onClick={generateMLBOrder}
-            style={{
-              background: '#28a745',
-              color: 'white',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              marginRight: '0.5rem',
-              cursor: 'pointer'
-            }}
-            title="MLB-level traditional batting order strategy"
-          >
-            🏆 MLB-Level
-          </button>
-          <button 
-            onClick={generateLocalLeagueOrder}
-            style={{
-              background: '#007bff',
-              color: 'white',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              marginRight: '0.5rem',
-              cursor: 'pointer'
-            }}
-            title="Local league optimized batting order with advanced stats"
-          >
-            🏟️ Local League
-          </button>
-          <button 
-            onClick={clearBattingOrder}
-            style={{
-              background: '#dc3545',
-              color: 'white',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-            title="Clear batting order only (keeps players)"
-          >
-            🗑️ Clear Order Only
-          </button>
+    <div style={{ 
+      padding: '1rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2rem'
+    }}>
+      <h2 style={{ textAlign: 'center', margin: 0 }}>Batting Order</h2>
+
+      {/* Generate Batting Order Section */}
+      <div style={{ marginBottom: '2rem' }}>
+        <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>What kind of team are you managing?</h3>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <img 
+                src="/mlblogo.png"
+                alt="MLB Logo"
+                onClick={generateMLBOrder}
+                style={{
+                  width: '120px',
+                  height: '90px',
+                  objectFit: 'contain',
+                  marginBottom: '0.5rem',
+                  cursor: 'pointer',
+                  border: '2px solid transparent',
+                  borderRadius: '8px',
+                  transition: 'border-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => (e.target as HTMLImageElement).style.borderColor = '#28a745'}
+                onMouseLeave={(e) => (e.target as HTMLImageElement).style.borderColor = 'transparent'}
+                title="Click to generate Elite batting order"
+              />
+              <div style={{ 
+                fontSize: '0.9rem', 
+                color: '#666', 
+                textAlign: 'center',
+                maxWidth: '140px'
+              }}>
+                Elite
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <img 
+                src="/localleague.png"
+                alt="Local League Logo"
+                onClick={generateJacksCustomLocalLeagueOrder}
+                style={{
+                  width: '120px',
+                  height: '90px',
+                  objectFit: 'contain',
+                  marginBottom: '0.5rem',
+                  cursor: 'pointer',
+                  border: '2px solid transparent',
+                  borderRadius: '8px',
+                  transition: 'border-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => (e.target as HTMLImageElement).style.borderColor = '#007bff'}
+                onMouseLeave={(e) => (e.target as HTMLImageElement).style.borderColor = 'transparent'}
+                title="Click to generate Local League batting order"
+              />
+              <div style={{ 
+                fontSize: '0.9rem', 
+                color: '#666', 
+                textAlign: 'center',
+                maxWidth: '140px'
+              }}>
+                Local League
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Batting Order */}
+      <div style={{ 
+        marginBottom: '2rem',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+        <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Current Batting Order ({battingOrder.length})</h3>
+        {battingOrder.length === 0 ? (
+          <p style={{ color: 'var(--theme-secondary)', fontStyle: 'italic' }}>
+            No players in batting order. Click "Generate Batting Order" or drag players from below.
+          </p>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={battingOrder.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              <div style={{ maxWidth: '500px' }}>
+                {battingOrder.map((player, index) => (
+                  <div key={player.id} style={{ position: 'relative' }}>
+                    <SortablePlayerCard player={player} position={index + 1} />
+                    <div style={{
+                      position: 'absolute',
+                      right: '-50px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px'
+                      }}>
+                        <button
+                          onClick={() => movePlayerUp(player.id)}
+                          disabled={index === 0}
+                          style={{
+                            background: index === 0 ? '#ccc' : '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            width: '24px',
+                            height: '20px',
+                            cursor: index === 0 ? 'not-allowed' : 'pointer',
+                            fontSize: '0.7em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          onClick={() => movePlayerDown(player.id)}
+                          disabled={index === battingOrder.length - 1}
+                          style={{
+                            background: index === battingOrder.length - 1 ? '#ccc' : '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            width: '24px',
+                            height: '20px',
+                            cursor: index === battingOrder.length - 1 ? 'not-allowed' : 'pointer',
+                            fontSize: '0.7em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => removePlayerFromOrder(player.id)}
+                        style={{
+                          background: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '28px',
+                          height: '28px',
+                          cursor: 'pointer',
+                          fontSize: '0.9em'
+                        }}
+                        title="Remove from batting order"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+        
+        {/* Clear Batting Order Button */}
+        {battingOrder.length > 0 && (
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <button 
+              onClick={clearBattingOrder}
+              style={{
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+              title="Clear batting order only (keeps players)"
+            >
+              Clear Batting Order
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Available Players */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h3>Available Players ({players.length})</h3>
-        <p style={{ fontSize: '0.9em', color: 'var(--theme-secondary)', marginBottom: '0.5rem' }}>
-          Click to add to batting order • Drag from here to batting order below
-        </p>
+      <div style={{ 
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+        <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Available Players ({players.length})</h3>
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
           gap: '0.5rem',
-          maxHeight: '200px',
+          maxHeight: '300px',
           overflowY: 'auto',
           padding: '0.5rem',
           background: '#f8f9fa',
           borderRadius: '4px',
-          border: '2px dashed #dee2e6'
+          border: '2px dashed #dee2e6',
+          width: '100%',
+          maxWidth: '800px'
         }}>
           {players.map(player => {
             const isInOrder = battingOrder.find(p => p.id === player.id);
@@ -462,51 +631,6 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
             );
           })}
         </div>
-      </div>
-
-      {/* Batting Order */}
-      <div>
-        <h3>Current Batting Order ({battingOrder.length})</h3>
-        {battingOrder.length === 0 ? (
-          <p style={{ color: 'var(--theme-secondary)', fontStyle: 'italic' }}>
-            No players in batting order. Click "Generate Optimal" or drag players from above.
-          </p>
-        ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext items={battingOrder.map(p => p.id)} strategy={verticalListSortingStrategy}>
-              <div style={{ maxWidth: '500px' }}>
-                {battingOrder.map((player, index) => (
-                  <div key={player.id} style={{ position: 'relative' }}>
-                    <SortablePlayerCard player={player} position={index + 1} />
-                    <button
-                      onClick={() => removePlayerFromOrder(player.id)}
-                      style={{
-                        position: 'absolute',
-                        right: '-30px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '20px',
-                        height: '20px',
-                        cursor: 'pointer',
-                        fontSize: '0.7em'
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
       </div>
     </div>
   );

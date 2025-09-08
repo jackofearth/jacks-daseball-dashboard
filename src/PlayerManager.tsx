@@ -18,7 +18,11 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
   const handleCSVImport = (csvData: any[], filename: string) => {
-    if (csvData.length === 0) return;
+    console.log('handleCSVImport called with:', csvData.length, 'rows, filename:', filename);
+    if (csvData.length === 0) {
+      console.log('No CSV data to import');
+      return;
+    }
 
     // Find column mappings (same logic as BattingOrder)
     const firstRow = csvData[0];
@@ -42,10 +46,32 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
                       value.toLowerCase().includes('last'));
     });
     
+    // If no name columns found, look for columns that might contain player names
+    // Check if any column values look like names (contain letters and spaces)
+    if (nameColumns.length === 0) {
+      console.log('No standard name columns found, looking for name-like data...');
+      for (let i = 0; i < Math.min(5, csvData.length); i++) {
+        const row = csvData[i];
+        for (const [key, value] of Object.entries(row)) {
+          if (value && typeof value === 'string' && value.length > 2 && value.length < 50) {
+            // Check if this looks like a name (contains letters, might have spaces, commas, or hyphens)
+            if (/^[a-zA-Z\s,\-\.]+$/.test(value) && !/^\d+$/.test(value)) {
+              console.log(`Found potential name column "${key}" with value: "${value}"`);
+              nameColumns.push(key);
+              break;
+            }
+          }
+        }
+        if (nameColumns.length > 0) break;
+      }
+    }
+    
     const avgColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('AVG'));
     const obpColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OBP'));
     const slgColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SLG'));
     const opsColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OPS'));
+    
+    console.log('Stats columns found:', { avgColumn, obpColumn, slgColumn, opsColumn });
     const sbColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB') && !firstRow[key].includes('%'));
     const sbPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB%'));
     const bbKColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('BB/K'));
@@ -57,17 +83,24 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
     const hrColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('HR'));
     const tbColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('TB'));
 
+    console.log('Name columns found:', { firstColumn, lastColumn, nameColumns });
+    console.log('Sample row data:', csvData[0]);
+    
     // Convert CSV data to players
     const importedPlayers: Player[] = csvData
-      .slice(1) // Skip header row
       .filter(row => {
         const hasName = nameColumns.some(col => row[col] && row[col].trim());
-        const hasStats = (avgColumn && row[avgColumn] && !isNaN(parseFloat(row[avgColumn]))) || 
-                        (obpColumn && row[obpColumn] && !isNaN(parseFloat(row[obpColumn]))) || 
-                        (slgColumn && row[slgColumn] && !isNaN(parseFloat(row[slgColumn])));
-        return hasName && hasStats;
+        // If we have name columns, include the player even without stats
+        if (nameColumns.length > 0) {
+          return hasName;
+        }
+        // Fallback: if no name columns found, try to find any row that looks like it has player data
+        return Object.values(row).some(value => 
+          value && typeof value === 'string' && value.length > 2 && 
+          /^[a-zA-Z\s,\-\.]+$/.test(value) && !/^\d+$/.test(value)
+        );
       })
-      .map(row => {
+      .map((row, index) => {
         let firstName, lastName, displayName;
         
         // Handle separate First/Last columns
@@ -131,11 +164,15 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
           tb
         };
       })
-      .filter(player => player.avg > 0 && player.name.length > 0);
+      .filter(player => player.name.length > 0 && player.name !== 'First Last');
 
     // Add imported players to existing list (avoid duplicates by name)
     const existingNames = new Set(players.map(p => p.name.toLowerCase()));
     const newPlayers = importedPlayers.filter(p => !existingNames.has(p.name.toLowerCase()));
+    
+    console.log('Imported players created:', importedPlayers.length);
+    console.log('New players (after filtering duplicates):', newPlayers.length);
+    console.log('Sample imported player:', importedPlayers[0]);
     
     onPlayersChange([...players, ...newPlayers]);
     
@@ -161,11 +198,6 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
     onPlayersChange(players.filter(p => p.id !== id));
   };
 
-  const clearAllPlayers = () => {
-    if (window.confirm('Are you sure you want to clear all players? This will also clear your batting order.')) {
-      onPlayersChange([]);
-    }
-  };
 
   const handleNameSubmit = () => {
     if (newPlayerName.trim()) {
@@ -209,8 +241,47 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
         alignItems: 'center',
         marginBottom: '1rem'
       }}>
-        <h2>👥 Player Management</h2>
         <div>
+          <button 
+            onClick={() => {
+              console.log('CSV button clicked');
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.csv';
+              input.onchange = (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                console.log('File selected:', file?.name);
+                if (file) {
+                  // Use Papa Parse directly on the file (like the original CSVImport component)
+                  import('papaparse').then((Papa) => {
+                    Papa.default.parse(file, {
+                      header: true,
+                      complete: (result) => {
+                        console.log('Papa Parse results:', result.data.length, 'rows');
+                        console.log('Sample parsed data:', result.data[0]);
+                        handleCSVImport(result.data, file.name);
+                      },
+                      error: (error) => {
+                        console.error('CSV parsing error:', error);
+                      }
+                    });
+                  });
+                }
+              };
+              input.click();
+            }}
+            style={{
+              background: 'var(--theme-accent)',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              marginRight: '0.5rem',
+              cursor: 'pointer'
+            }}
+          >
+            📄 Add Game Changer CSV
+          </button>
           <button 
             onClick={() => setShowAddDialog(true)}
             style={{
@@ -225,57 +296,9 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
           >
             + Add Player
           </button>
-          <button 
-            onClick={clearAllPlayers}
-            style={{
-              background: '#dc3545',
-              color: 'white',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-            title="Clear all players and batting order"
-          >
-            🗑️ Clear All Players
-          </button>
         </div>
       </div>
 
-      {/* CSV Import */}
-      <div style={{ marginBottom: '2rem' }}>
-        <CSVImport onDataImported={handleCSVImport} />
-        
-        {/* CSV Import Records */}
-        {csvFiles.length > 0 && (
-          <div style={{
-            background: '#e8f5e8',
-            border: '1px solid #28a745',
-            borderRadius: '4px',
-            padding: '1rem',
-            marginTop: '1rem'
-          }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--theme-accent)' }}>
-              📄 Imported CSV Files ({csvFiles.length})
-            </h4>
-            <div style={{ fontSize: '0.9em', color: 'var(--theme-accent)' }}>
-              {csvFiles.slice(-3).map((csv, index) => (
-                <div key={csv.id} style={{ marginBottom: '0.5rem' }}>
-                  <div><strong>File:</strong> {csv.filename}</div>
-                  <div><strong>Players Added:</strong> {csv.playerCount}</div>
-                  <div><strong>Imported:</strong> {new Date(csv.importedAt).toLocaleString()}</div>
-                  {index < csvFiles.slice(-3).length - 1 && <hr style={{ margin: '0.5rem 0' }} />}
-                </div>
-              ))}
-              {csvFiles.length > 3 && (
-                <div style={{ fontStyle: 'italic', marginTop: '0.5rem' }}>
-                  ... and {csvFiles.length - 3} more files
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Add Player Name Dialog */}
       {showAddDialog && (
@@ -411,31 +434,6 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
         />
       )}
 
-      {/* Players List */}
-      <div style={{ marginTop: '1rem' }}>
-        <h3>Players ({players.length})</h3>
-        {players.length === 0 ? (
-          <p style={{ color: 'var(--theme-secondary)', fontStyle: 'italic' }}>
-            No players added yet. Import from CSV or add manually.
-          </p>
-        ) : (
-          <div style={{ 
-            display: 'grid', 
-            gap: '0.5rem',
-            maxHeight: '400px',
-            overflowY: 'auto'
-          }}>
-            {players.map(player => (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                onEdit={() => setEditingPlayer(player)}
-                onDelete={() => deletePlayer(player.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 };
@@ -516,17 +514,19 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => 
           <strong>Basic Information</strong>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-          <div>
-            <label>Full Name *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              required
-              placeholder="e.g., John Smith"
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-            />
-          </div>
+          {!player && (
+            <div>
+              <label>Full Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                required
+                placeholder="e.g., John Smith"
+                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+              />
+            </div>
+          )}
           
           <div>
             <label>First Name</label>

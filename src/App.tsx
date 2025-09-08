@@ -9,7 +9,6 @@ import ThemeCustomizer from './ThemeCustomizer';
 function App() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [battingOrder, setBattingOrder] = useState<Player[]>([]);
-  const [activeTab, setActiveTab] = useState<'players' | 'batting-order'>('players');
   const [teamInfo, setTeamInfo] = useState<TeamInfo>(StorageService.getDefaultTeamData().teamInfo);
   const [csvFiles, setCsvFiles] = useState<CSVFile[]>([]);
   const [savedBattingOrders, setSavedBattingOrders] = useState<BattingOrderConfig[]>([]);
@@ -101,6 +100,14 @@ function App() {
     }));
   };
 
+  const handleClearAllPlayers = () => {
+    if (window.confirm('Are you sure you want to clear all players? This will also clear your batting order and imported CSV files.')) {
+      setPlayers([]);
+      setBattingOrder([]);
+      setCsvFiles([]);
+    }
+  };
+
   const handleClearAllData = () => {
     if (window.confirm('Are you sure you want to clear ALL data? This cannot be undone.')) {
       const success = StorageService.clearTeamData();
@@ -174,7 +181,7 @@ function App() {
           style={{
             position: 'absolute',
             top: '1rem',
-            right: '1rem',
+            left: '1rem',
             background: 'rgba(255, 255, 255, 0.2)',
             border: '1px solid rgba(255, 255, 255, 0.3)',
             color: 'white',
@@ -197,39 +204,6 @@ function App() {
           🎨 Customize Theme
         </button>
 
-        {/* Save Status Indicator */}
-        <div style={{
-          position: 'absolute',
-          top: '1rem',
-          right: '12rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontSize: '0.9rem'
-        }}>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: saveStatus === 'saved' ? '#10b981' : 
-                           saveStatus === 'saving' ? '#f59e0b' : '#ef4444'
-          }} />
-          <span>
-            {saveStatus === 'saved' ? 'Saved' : 
-             saveStatus === 'saving' ? 'Saving...' : 'Save Error'}
-          </span>
-        </div>
-
-        {/* Storage Info */}
-        <div style={{
-          position: 'absolute',
-          top: '1rem',
-          left: '1rem',
-          fontSize: '0.8rem',
-          opacity: 0.8
-        }}>
-          Storage: {Math.round(getStorageInfo().percentage)}% used
-        </div>
       </header>
       
       {/* Tab Navigation */}
@@ -238,60 +212,53 @@ function App() {
         padding: '1rem 2rem',
         borderBottom: '1px solid #dee2e6',
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'center'
       }}>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+
+        {/* Clear Buttons */}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
-            onClick={() => setActiveTab('players')}
+            onClick={handleClearAllPlayers}
             style={{
-              background: activeTab === 'players' ? `var(--theme-primary)` : 'transparent',
-              color: activeTab === 'players' ? 'white' : `var(--theme-primary)`,
-              border: `1px solid var(--theme-primary)`,
+              background: '#ffc107',
+              color: 'black',
+              border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              fontSize: '0.9rem'
             }}
+            title="Clear all players and batting order"
           >
-            👥 Manage Players
+            🗑️ Clear All Players
           </button>
           <button
-            onClick={() => setActiveTab('batting-order')}
+            onClick={handleClearAllData}
             style={{
-              background: activeTab === 'batting-order' ? `var(--theme-primary)` : 'transparent',
-              color: activeTab === 'batting-order' ? 'white' : `var(--theme-primary)`,
-              border: `1px solid var(--theme-primary)`,
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              fontSize: '0.9rem'
             }}
+            title="Clear all saved data (players, batting orders, CSV files)"
           >
-            ⚾ Batting Order
+            🗑️ Clear All Data
           </button>
         </div>
-
-        {/* Clear All Data Button */}
-        <button
-          onClick={handleClearAllData}
-          style={{
-            background: '#dc3545',
-            color: 'white',
-            border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.9rem'
-          }}
-          title="Clear all saved data (players, batting orders, CSV files)"
-        >
-          🗑️ Clear All Data
-        </button>
       </nav>
       
-      <main style={{ padding: '2rem' }}>
+      <main style={{ 
+        padding: '2rem',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        minHeight: 'calc(100vh - 200px)'
+      }}>
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Loading your team data...</div>
@@ -299,26 +266,22 @@ function App() {
           </div>
         ) : (
           <>
-            {activeTab === 'players' && (
-              <PlayerManager 
-                players={players}
-                onPlayersChange={handlePlayersChange}
-                csvFiles={csvFiles}
-                onCSVImport={handleCSVImport}
-              />
-            )}
+            <PlayerManager 
+              players={players}
+              onPlayersChange={handlePlayersChange}
+              csvFiles={csvFiles}
+              onCSVImport={handleCSVImport}
+            />
             
-            {activeTab === 'batting-order' && (
-              <DraggableBattingOrder 
-                players={players} 
-                battingOrder={battingOrder}
-                onBattingOrderChange={handleBattingOrderChange}
-                savedBattingOrders={savedBattingOrders}
-                onSaveBattingOrder={(config) => setSavedBattingOrders(prev => [...prev, config])}
-                settings={settings}
-                onSettingsChange={setSettings}
-              />
-            )}
+            <DraggableBattingOrder 
+              players={players} 
+              battingOrder={battingOrder}
+              onBattingOrderChange={handleBattingOrderChange}
+              savedBattingOrders={savedBattingOrders}
+              onSaveBattingOrder={(config) => setSavedBattingOrders(prev => [...prev, config])}
+              settings={settings}
+              onSettingsChange={setSettings}
+            />
           </>
         )}
       </main>
