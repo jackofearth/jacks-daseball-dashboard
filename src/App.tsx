@@ -16,6 +16,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // Auto-load data on app start
   useEffect(() => {
@@ -152,7 +153,7 @@ function App() {
         position: 'relative'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-          {teamInfo.logo && (
+          {teamInfo.logo ? (
             <img
               src={teamInfo.logo}
               alt={`${teamInfo.name} logo`}
@@ -162,47 +163,74 @@ function App() {
                 objectFit: 'contain'
               }}
             />
-          )}
-          <div>
-            <h1 style={{ margin: 0, fontSize: '2.5rem' }}>
-              {teamInfo.name || 'Baseball Dashboard'}
-            </h1>
-            {teamInfo.location && (
-              <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.1rem', opacity: 0.9 }}>
-                {teamInfo.location}
-              </p>
-            )}
+          ) : showThemeCustomizer ? (
+            <div style={{
+              fontSize: '3rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '120px',
+              height: '80px'
+            }}>
+              ⚾
+            </div>
+          ) : null}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: '2.5rem' }}>
+                {teamInfo.name || 'Baseball Dashboard'}
+              </h1>
+              {teamInfo.location && (
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.1rem', opacity: 0.9 }}>
+                  {teamInfo.location}
+                </p>
+              )}
+            </div>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                onClick={() => setShowThemeCustomizer(true)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'white',
+                  padding: '0.5rem',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={() => {
+                  setShowTooltip(true);
+                }}
+                onMouseLeave={() => {
+                  setShowTooltip(false);
+                }}
+              >
+                ✏️
+              </button>
+              {showTooltip && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '100%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(0, 0, 0, 0.8)',
+                  color: 'white',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  whiteSpace: 'nowrap',
+                  marginBottom: '0.25rem',
+                  zIndex: 1000
+                }}>
+                  Customise
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        
-        {/* Theme Customizer Button */}
-        <button
-          onClick={() => setShowThemeCustomizer(true)}
-          style={{
-            position: 'absolute',
-            top: '1rem',
-            left: '1rem',
-            background: 'rgba(255, 255, 255, 0.2)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            color: 'white',
-            padding: '0.5rem 1rem',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-          }}
-        >
-          🎨 Customize Theme
-        </button>
 
       </header>
       

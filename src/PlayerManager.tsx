@@ -70,8 +70,9 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
     const obpColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OBP'));
     const slgColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SLG'));
     const opsColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OPS'));
+    const abColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('AB'));
     
-    console.log('Stats columns found:', { avgColumn, obpColumn, slgColumn, opsColumn });
+    console.log('Stats columns found:', { avgColumn, obpColumn, slgColumn, opsColumn, abColumn });
     const sbColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB') && !firstRow[key].includes('%'));
     const sbPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB%'));
     const bbKColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('BB/K'));
@@ -132,6 +133,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
         const obp = obpColumn ? parseFloat(row[obpColumn]) || 0 : 0;
         const slg = slgColumn ? parseFloat(row[slgColumn]) || 0 : 0;
         const ops = opsColumn ? parseFloat(row[opsColumn]) || 0 : (obp + slg);
+        const ab = abColumn ? parseFloat(row[abColumn]) || 0 : 0;
         const sb = sbColumn ? parseFloat(row[sbColumn]) || 0 : 0;
         const sb_percent = sbPercentColumn ? parseFloat(row[sbPercentColumn]) || 0 : 0;
         const bb_k = bbKColumn ? parseFloat(row[bbKColumn]) || 0 : 0;
@@ -152,6 +154,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
           obp,
           slg,
           ops,
+          ab,
           sb,
           sb_percent,
           bb_k,
@@ -280,7 +283,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
               cursor: 'pointer'
             }}
           >
-            📄 Add Game Changer CSV
+            📄 Add a Game Changer CSV
           </button>
           <button 
             onClick={() => setShowAddDialog(true)}
@@ -294,7 +297,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
               cursor: 'pointer'
             }}
           >
-            + Add Player
+            + Manually Add a Player
           </button>
         </div>
       </div>
@@ -900,7 +903,7 @@ const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, o
             cursor: 'pointer'
           }}
         >
-          Add Player
+          Manually Add a Player
         </button>
       </div>
     </form>

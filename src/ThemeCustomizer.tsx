@@ -220,9 +220,9 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
             />
           </div>
 
-          {logoPreview && (
-            <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-              <h4 style={{ margin: '0 0 0.5rem 0', color: '#555' }}>Logo Preview:</h4>
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#555' }}>Logo Preview:</h4>
+            {logoPreview ? (
               <img
                 src={logoPreview}
                 alt="Logo preview"
@@ -236,8 +236,24 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
                   objectFit: 'contain'
                 }}
               />
-            </div>
-          )}
+            ) : (
+              <div style={{
+                width: '200px',
+                height: '200px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                padding: '0.5rem',
+                background: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '4rem',
+                color: '#666'
+              }}>
+                ⚾
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Color Scheme Selection */}

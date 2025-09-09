@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import {
   DndContext,
   closestCenter,
@@ -33,9 +34,109 @@ interface DraggableBattingOrderProps {
 interface SortablePlayerCardProps {
   player: Player;
   position: number;
+  getConfidenceLevel: (ab: number) => { level: string; label: string; color: string; icon: string; penalty: number };
 }
 
-const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, position }) => {
+// Available Player Card Component
+interface AvailablePlayerCardProps {
+  player: Player;
+  isInOrder: Player | undefined;
+  confidence: { level: string; label: string; color: string; icon: string; penalty: number };
+  onAddToOrder: () => void;
+}
+
+const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInOrder, confidence, onAddToOrder }) => {
+  const [showTooltip, setShowTooltip] = React.useState(false);
+  const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
+
+  return (
+    <div
+      onClick={onAddToOrder}
+      style={{
+        background: isInOrder ? '#e9ecef' : 'white',
+        border: isInOrder ? '1px solid #6c757d' : '1px solid #007bff',
+        borderRadius: '4px',
+        padding: '0.5rem',
+        cursor: isInOrder ? 'not-allowed' : 'pointer',
+        opacity: isInOrder ? 0.6 : 1,
+        fontSize: '0.9em',
+        transition: 'all 0.2s ease',
+        boxShadow: isInOrder ? 'none' : '0 2px 4px rgba(0,123,255,0.1)'
+      }}
+      onMouseEnter={(e) => {
+        if (!isInOrder) {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,123,255,0.2)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isInOrder) {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,123,255,0.1)';
+        }
+      }}
+    >
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '0.5rem',
+        fontWeight: 'bold', 
+        color: isInOrder ? 'var(--theme-secondary)' : 'var(--theme-primary)' 
+      }}>
+        <span>{player.name}</span>
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <span 
+            style={{ 
+              fontSize: '0.8em',
+              color: confidence.color,
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setTooltipPosition({
+                x: rect.left + rect.width / 2,
+                y: rect.top - 10
+              });
+              setShowTooltip(true);
+            }}
+            onMouseLeave={() => setShowTooltip(false)}
+          >
+            {confidence.icon}
+          </span>
+          {showTooltip && ReactDOM.createPortal(
+            <div style={{
+              position: 'fixed',
+              left: tooltipPosition.x,
+              top: tooltipPosition.y,
+              transform: 'translateX(-50%)',
+              background: 'rgba(0, 0, 0, 0.9)',
+              color: 'white',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              whiteSpace: 'nowrap',
+              zIndex: 9999,
+              pointerEvents: 'none',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              {confidence.label} ({player.ab || 0} AB){confidence.penalty > 0 ? ` - ${(confidence.penalty * 100)}% penalty applied` : ''}
+            </div>,
+            document.body
+          )}
+        </div>
+      </div>
+      {(player.avg > 0 || player.ops > 0) && (
+        <div style={{ fontSize: '0.8em', color: 'var(--theme-secondary)' }}>
+          AVG: {player.avg.toFixed(3)} | OPS: {player.ops.toFixed(3)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, position, getConfidenceLevel }) => {
   const {
     attributes,
     listeners,
@@ -50,6 +151,10 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  const confidence = getConfidenceLevel(player.ab || 0);
+  const [showTooltip, setShowTooltip] = React.useState(false);
+  const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
 
 
 
@@ -89,6 +194,48 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <strong>{player.name}</strong>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <span 
+              style={{ 
+                fontSize: '0.8em',
+                color: confidence.color,
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setTooltipPosition({
+                x: rect.left + rect.width / 2,
+                y: rect.top - 10
+              });
+              setShowTooltip(true);
+            }}
+            onMouseLeave={() => setShowTooltip(false)}
+          >
+            {confidence.icon}
+          </span>
+          {showTooltip && ReactDOM.createPortal(
+            <div style={{
+              position: 'fixed',
+              left: tooltipPosition.x,
+              top: tooltipPosition.y,
+              transform: 'translateX(-50%)',
+              background: 'rgba(0, 0, 0, 0.9)',
+              color: 'white',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              whiteSpace: 'nowrap',
+              zIndex: 9999,
+              pointerEvents: 'none',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              {confidence.label} ({player.ab || 0} AB){confidence.penalty > 0 ? ` - ${(confidence.penalty * 100)}% penalty applied` : ''}
+            </div>,
+            document.body
+          )}
+          </div>
         </div>
       </div>
       <div style={{ 
@@ -111,6 +258,39 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   settings,
   onSettingsChange
 }) => {
+  // Get confidence level based on AB
+  const getConfidenceLevel = (ab: number) => {
+    if (ab >= 10) return { level: 'full', label: 'Full confidence', color: '#28a745', icon: '', penalty: 0 };
+    if (ab >= 6) return { level: 'medium', label: 'Medium confidence', color: '#ffc107', icon: '⚡', penalty: 0.15 };
+    if (ab >= 3) return { level: 'low', label: 'Low confidence', color: '#fd7e14', icon: '⚠️', penalty: 0.30 };
+    return { level: 'excluded', label: 'Excluded', color: '#dc3545', icon: '🚫', penalty: 1 };
+  };
+
+  // Apply confidence penalty to offensive stats
+  const applyConfidencePenalty = (player: Player) => {
+    const confidence = getConfidenceLevel(player.ab || 0);
+    const penalty = confidence.penalty;
+    
+    if (penalty === 0) return player; // No penalty for full confidence
+    
+    return {
+      ...player,
+      avg: (player.avg || 0) * (1 - penalty),
+      obp: (player.obp || 0) * (1 - penalty),
+      slg: (player.slg || 0) * (1 - penalty),
+      ops: (player.ops || 0) * (1 - penalty),
+      sb_percent: (player.sb_percent || 0) * (1 - penalty),
+      contact_percent: (player.contact_percent || 0) * (1 - penalty),
+      qab_percent: (player.qab_percent || 0) * (1 - penalty),
+      ba_risp: (player.ba_risp || 0) * (1 - penalty),
+      two_out_rbi: (player.two_out_rbi || 0) * (1 - penalty),
+      xbh: (player.xbh || 0) * (1 - penalty),
+      hr: (player.hr || 0) * (1 - penalty),
+      tb: (player.tb || 0) * (1 - penalty),
+      bb_k: (player.bb_k || 0) * (1 - penalty),
+      rbi: (player.rbi || 0) * (1 - penalty)
+    };
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -172,18 +352,29 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       return;
     }
 
-    // Filter out players with no meaningful stats (all zeros)
+    // Filter players by confidence level
     const playersWithStats = players.filter(player => 
       player.avg > 0 || player.obp > 0 || player.slg > 0
     );
     
-    // If we have players with stats, use them; otherwise use all players
-    const allPlayers = playersWithStats.length > 0 ? playersWithStats : [...players];
+    const primaryPlayers = playersWithStats.filter(player => 
+      (player.ab || 0) >= 3
+    );
+    
+    const excludedPlayers = playersWithStats.filter(player => 
+      (player.ab || 0) < 3
+    );
+    
+    // If we have players with sufficient stats, use them; otherwise use all players
+    const allPlayers = primaryPlayers.length > 0 ? primaryPlayers : [...players];
+    
+    // Apply confidence penalties to all players
+    const penalizedPlayers = allPlayers.map(applyConfidencePenalty);
     const optimalOrder: Player[] = new Array(9).fill(null);
     const usedPlayers = new Set<string>();
 
     const findBestPlayer = (criteria: (player: Player) => number, excludeUsed = true) => {
-      return allPlayers
+      return penalizedPlayers
         .filter(player => !excludeUsed || !usedPlayers.has(player.id))
         .sort((a, b) => criteria(b) - criteria(a))[0];
     };
@@ -195,46 +386,44 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       }
     };
 
-    // 1. Lead-off (1st): High OBP + Speed + Contact + Low K%
+    // 1. Lead-off (1st): More speed emphasis - leadoff needs to steal bases
     const leadoff = findBestPlayer(player => 
-      player.obp * 0.5 + 
-      (player.sb_percent || 0) * 0.2 + 
+      player.obp * 0.4 + 
+      (player.sb_percent || 0) * 0.3 + 
       (player.contact_percent || 0) * 0.2 + 
       player.avg * 0.1
     );
     assignPlayer(0, leadoff);
 
-    // 2. Second (2nd): High contact + Situational hitting + Can move runners
+    // 2. Table Setter (2nd): Heavy contact focus - must put ball in play to move runner
     const second = findBestPlayer(player => 
-      (player.contact_percent || 0) * 0.4 + 
+      (player.contact_percent || 0) * 0.5 + 
       (player.ba_risp || 0) * 0.3 + 
-      player.avg * 0.2 + 
-      (player.qab_percent || 0) * 0.1
+      (player.qab_percent || 0) * 0.2
     );
     assignPlayer(1, second);
 
-    // 3. Third (3rd): Best overall hitter (highest OPS + Quality at-bats)
+    // 3. Best Hitter (3rd): Still your best hitter, but situational awareness matters
     const third = findBestPlayer(player => 
-      player.ops * 0.7 + 
-      (player.qab_percent || 0) * 0.3
+      player.ops * 0.6 + 
+      (player.ba_risp || 0) * 0.25 + 
+      (player.qab_percent || 0) * 0.15
     );
     assignPlayer(2, third);
 
-    // 4. Clean-up (4th): Power hitter + RBI production
+    // 4. Clean-up (4th): Clutch situations are everything - raw power is secondary
     const cleanup = findBestPlayer(player => 
-      player.slg * 0.4 + 
-      (player.two_out_rbi || 0) * 0.3 + 
-      (player.xbh || 0) * 0.2 + 
-      (player.ba_risp || 0) * 0.1
+      (player.ba_risp || 0) * 0.45 + 
+      player.slg * 0.35 + 
+      (player.two_out_rbi || 0) * 0.2
     );
     assignPlayer(3, cleanup);
 
-    // 5. Fifth: Second best power + Clutch hitting
+    // 5. Protection (5th): SLG: 45% | RISP: 35% | Two-out RBI: 20%
     const fifth = findBestPlayer(player => 
-      player.slg * 0.4 + 
-      (player.ba_risp || 0) * 0.3 + 
-      player.ops * 0.2 + 
-      (player.two_out_rbi || 0) * 0.1
+      player.slg * 0.45 + 
+      (player.ba_risp || 0) * 0.35 + 
+      (player.two_out_rbi || 0) * 0.2
     );
     assignPlayer(4, fifth);
 
@@ -249,17 +438,15 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       }
     }
 
-    const finalOrder = optimalOrder.filter(player => player !== null);
+    // Map back to original players (not penalized versions)
+    const finalOrder = optimalOrder
+      .filter(player => player !== null)
+      .map(penalizedPlayer => 
+        allPlayers.find(originalPlayer => originalPlayer.id === penalizedPlayer.id)
+      )
+      .filter((player): player is Player => player !== undefined);
+    
     onBattingOrderChange(finalOrder);
-    
-    // Show warning if we included players with no stats
-    const playersWithNoStats = finalOrder.filter(player => 
-      player.avg === 0 && player.obp === 0 && player.slg === 0
-    );
-    
-    if (playersWithNoStats.length > 0) {
-      alert(`⚠️ Warning: ${playersWithNoStats.length} player(s) with no meaningful stats were included in the batting order. Consider adding stats or removing these players.`);
-    }
   };
 
   const generateMLBOrder = () => {
@@ -269,18 +456,29 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       return;
     }
 
-    // Filter out players with no meaningful stats (all zeros)
+    // Filter players by confidence level
     const playersWithStats = players.filter(player => 
       player.avg > 0 || player.obp > 0 || player.slg > 0
     );
     
-    // If we have players with stats, use them; otherwise use all players
-    const playersToUse = playersWithStats.length > 0 ? playersWithStats : [...players];
+    const primaryPlayers = playersWithStats.filter(player => 
+      (player.ab || 0) >= 3
+    );
+    
+    const excludedPlayers = playersWithStats.filter(player => 
+      (player.ab || 0) < 3
+    );
+    
+    // If we have players with sufficient stats, use them; otherwise use all players
+    const playersToUse = primaryPlayers.length > 0 ? primaryPlayers : [...players];
 
-    // MLB Traditional Order Algorithm
-    const playerStats = playersToUse.map(p => ({
+    // Apply confidence penalties to all players
+    const penalizedPlayers = playersToUse.map(applyConfidencePenalty);
+
+    // MLB Traditional Order Algorithm - use penalized stats for ranking
+    const playerStats = penalizedPlayers.map(p => ({
       ...p,
-      ops: p.obp + p.slg,  // On-base + Slugging
+      ops: p.obp + p.slg,  // On-base + Slugging (with penalty applied)
       contactScore: p.avg + p.obp,
       speedScore: p.sb_percent || 0
     }));
@@ -354,22 +552,17 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       used.add(weakestCandidates[0].id);
     }
 
-    // Convert to array format
+    // Convert to array format and map back to original players
     const finalOrder = Object.keys(order)
       .sort((a, b) => parseInt(a) - parseInt(b))
-      .map(key => order[parseInt(key)])
-      .filter(Boolean);
+      .map(key => {
+        const penalizedPlayer = order[parseInt(key)];
+        // Find the original player by ID
+        return playersToUse.find(originalPlayer => originalPlayer.id === penalizedPlayer.id);
+      })
+      .filter((player): player is Player => player !== undefined);
 
     onBattingOrderChange(finalOrder);
-    
-    // Show warning if we included players with no stats
-    const playersWithNoStats = finalOrder.filter(player => 
-      player.avg === 0 && player.obp === 0 && player.slg === 0
-    );
-    
-    if (playersWithNoStats.length > 0) {
-      alert(`⚠️ Warning: ${playersWithNoStats.length} player(s) with no meaningful stats were included in the batting order. Consider adding stats or removing these players.`);
-    }
   };
 
   return (
@@ -379,11 +572,11 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       flexDirection: 'column',
       gap: '2rem'
     }}>
-      <h2 style={{ textAlign: 'center', margin: 0 }}>Batting Order</h2>
+      <h1 style={{ textAlign: 'center', margin: 0, fontSize: '2.5rem' }}>Batting Order</h1>
 
       {/* Generate Batting Order Section */}
       <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>What kind of team are you managing?</h3>
+        <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Choose your strategy</h3>
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -403,16 +596,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 }}
                 onMouseEnter={(e) => (e.target as HTMLImageElement).style.borderColor = '#28a745'}
                 onMouseLeave={(e) => (e.target as HTMLImageElement).style.borderColor = 'transparent'}
-                title="Click to generate Elite batting order"
+                title="Click to generate Traditional MLB batting order"
               />
-              <div style={{ 
-                fontSize: '0.9rem', 
-                color: '#666', 
-                textAlign: 'center',
-                maxWidth: '140px'
-              }}>
-                Elite
-              </div>
+                    <div style={{ 
+                      fontSize: '0.9rem', 
+                      color: '#666', 
+                      textAlign: 'center',
+                      maxWidth: '140px'
+                    }}>
+                      Traditional MLB
+                    </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <img 
@@ -431,16 +624,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 }}
                 onMouseEnter={(e) => (e.target as HTMLImageElement).style.borderColor = '#007bff'}
                 onMouseLeave={(e) => (e.target as HTMLImageElement).style.borderColor = 'transparent'}
-                title="Click to generate Local League batting order"
+                title="Click to generate Advanced Analytics batting order"
               />
-              <div style={{ 
-                fontSize: '0.9rem', 
-                color: '#666', 
-                textAlign: 'center',
-                maxWidth: '140px'
-              }}>
-                Local League
-              </div>
+                    <div style={{ 
+                      fontSize: '0.9rem', 
+                      color: '#666', 
+                      textAlign: 'center',
+                      maxWidth: '140px'
+                    }}>
+                      Advanced Analytics
+                    </div>
             </div>
           </div>
         </div>
@@ -468,7 +661,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
               <div style={{ maxWidth: '500px' }}>
                 {battingOrder.map((player, index) => (
                   <div key={player.id} style={{ position: 'relative' }}>
-                    <SortablePlayerCard player={player} position={index + 1} />
+                    <SortablePlayerCard player={player} position={index + 1} getConfidenceLevel={getConfidenceLevel} />
                     <div style={{
                       position: 'absolute',
                       right: '-50px',
@@ -591,43 +784,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         }}>
           {players.map(player => {
             const isInOrder = battingOrder.find(p => p.id === player.id);
+            const confidence = getConfidenceLevel(player.ab || 0);
+            
             return (
-              <div
+              <AvailablePlayerCard 
                 key={player.id}
-                onClick={() => addPlayerToOrder(player)}
-                style={{
-                  background: isInOrder ? '#e9ecef' : 'white',
-                  border: isInOrder ? '1px solid #6c757d' : '1px solid #007bff',
-                  borderRadius: '4px',
-                  padding: '0.5rem',
-                  cursor: isInOrder ? 'not-allowed' : 'pointer',
-                  opacity: isInOrder ? 0.6 : 1,
-                  fontSize: '0.9em',
-                  transition: 'all 0.2s ease',
-                  boxShadow: isInOrder ? 'none' : '0 2px 4px rgba(0,123,255,0.1)'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isInOrder) {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,123,255,0.2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isInOrder) {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,123,255,0.1)';
-                  }
-                }}
-              >
-                <div style={{ fontWeight: 'bold', color: isInOrder ? 'var(--theme-secondary)' : 'var(--theme-primary)' }}>
-                  {player.name}
-                </div>
-                {(player.avg > 0 || player.ops > 0) && (
-                  <div style={{ fontSize: '0.8em', color: 'var(--theme-secondary)' }}>
-                    AVG: {player.avg.toFixed(3)} | OPS: {player.ops.toFixed(3)}
-                  </div>
-                )}
-              </div>
+                player={player}
+                isInOrder={isInOrder}
+                confidence={confidence}
+                onAddToOrder={() => addPlayerToOrder(player)}
+              />
             );
           })}
         </div>
