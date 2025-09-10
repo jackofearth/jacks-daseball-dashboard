@@ -144,7 +144,7 @@ const HelpPage: React.FC = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <p style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Q: Why did I create this tool?</p>
             <p style={{ marginBottom: '1rem', paddingLeft: '1rem', lineHeight: '1.6' }}>
-              A: There's no reason teams who play for fun or juniors shouldn't benefit from all the advanced stats we have at our fingertips. Professional teams use sophisticated analytics - now youth and recreational coaches can too, without needing a statistics degree.
+              A: There's no reason teams who play for fun or juniors shouldn't benefit from all the advanced stats we have at our fingertips. Why base your lineup on vibes when you can base it on cold hard stats?
             </p>
           </div>
           

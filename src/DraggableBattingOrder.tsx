@@ -777,11 +777,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
             {showFieldingDropdowns ? 'Hide Fielding Position' : 'Show Fielding Position'}
           </button>
         </div>
-        {battingOrder.length === 0 ? (
-          <p style={{ color: 'var(--theme-secondary)', fontStyle: 'italic' }}>
-            No players in batting order. Click "Generate Batting Order" or drag players from below.
-          </p>
-        ) : (
+        {battingOrder.length === 0 ? null : (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
