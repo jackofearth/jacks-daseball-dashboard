@@ -113,6 +113,20 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
     onClose();
   };
 
+  const handleReset = () => {
+    // Reset to default values
+    setFormData({
+      teamName: '',
+      location: ''
+    });
+    setLogoPreview(null);
+    setSelectedColorScheme('blue');
+    setCustomColors({
+      primary: '#007bff',
+      secondary: '#6c757d'
+    });
+  };
+
   return (
     <div style={{
       position: 'fixed',
@@ -387,36 +401,53 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between' }}>
           <button
-            onClick={onClose}
+            onClick={handleReset}
             style={{
               padding: '0.75rem 1.5rem',
-              border: '1px solid #ddd',
+              border: '1px solid #dc3545',
               borderRadius: '4px',
               background: 'white',
-              color: '#666',
-              cursor: 'pointer',
-              fontSize: '1rem'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: 'none',
-              borderRadius: '4px',
-              background: '#007bff',
-              color: 'white',
+              color: '#dc3545',
               cursor: 'pointer',
               fontSize: '1rem',
               fontWeight: 'bold'
             }}
           >
-            Save Changes
+            Reset Customization
           </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                background: 'white',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: '1rem'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              style={{
+                padding: '0.75rem 1.5rem',
+                border: 'none',
+                borderRadius: '4px',
+                background: '#007bff',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: 'bold'
+              }}
+            >
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import { PlayerManager } from './PlayerManager';
 import { Player, ThemeSettings } from './StorageService';
 import { DraggableBattingOrder } from './DraggableBattingOrder';
 import StorageService, { TeamData, TeamInfo, CSVFile, BattingOrderConfig, UserSettings } from './StorageService';
 import ThemeCustomizer from './ThemeCustomizer';
+import ConfirmationDialog from './ConfirmationDialog';
+import HelpPage from './HelpPage';
 
 function App() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -17,6 +20,7 @@ function App() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showClearPlayersDialog, setShowClearPlayersDialog] = useState(false);
 
   // Auto-load data on app start
   useEffect(() => {
@@ -102,31 +106,14 @@ function App() {
   };
 
   const handleClearAllPlayers = () => {
-    if (window.confirm('Are you sure you want to clear all players? This will also clear your batting order and imported CSV files.')) {
-      setPlayers([]);
-      setBattingOrder([]);
-      setCsvFiles([]);
-    }
+    setShowClearPlayersDialog(true);
   };
 
-  const handleClearAllData = () => {
-    if (window.confirm('Are you sure you want to clear ALL data? This cannot be undone.')) {
-      const success = StorageService.clearTeamData();
-      if (success) {
-        // Reset to defaults
-        setPlayers([]);
-        setBattingOrder([]);
-        setCsvFiles([]);
-        setSavedBattingOrders([]);
-        setTeamInfo(StorageService.getDefaultTeamData().teamInfo);
-        setSettings(StorageService.getDefaultTeamData().settings);
-        setSaveStatus('saved');
-        console.log('All data cleared successfully');
-      } else {
-        console.error('Failed to clear data');
-        setSaveStatus('error');
-      }
-    }
+  const confirmClearAllPlayers = () => {
+    setPlayers([]);
+    setBattingOrder([]);
+    setCsvFiles([]);
+    setShowClearPlayersDialog(false);
   };
 
   const getStorageInfo = () => {
@@ -144,91 +131,128 @@ function App() {
   }, [settings.customTheme]);
 
   return (
-    <div className="App">
+    <Router>
+      <Routes>
+        <Route path="/help" element={<HelpPage />} />
+        <Route path="/" element={
+          <div className="App">
       <header style={{
         background: `linear-gradient(135deg, ${settings.customTheme?.colors?.primary || '#007bff'} 0%, ${settings.customTheme?.colors?.secondary || '#6c757d'} 100%)`,
         padding: '2rem',
         color: 'white',
-        textAlign: 'center',
         position: 'relative'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-          {teamInfo.logo ? (
-            <img
-              src={teamInfo.logo}
-              alt={`${teamInfo.name} logo`}
-              style={{
-                maxWidth: '120px',
-                maxHeight: '80px',
-                objectFit: 'contain'
-              }}
-            />
-          ) : showThemeCustomizer ? (
-            <div style={{
-              fontSize: '3rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '120px',
-              height: '80px'
-            }}>
-              ⚾
-            </div>
-          ) : null}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          {/* Left side - Logo */}
+          <div style={{ flex: '0 0 auto' }}>
+            {teamInfo.logo ? (
+              <img
+                src={teamInfo.logo}
+                alt={`${teamInfo.name} logo`}
+                style={{
+                  maxWidth: '120px',
+                  maxHeight: '80px',
+                  objectFit: 'contain'
+                }}
+              />
+            ) : showThemeCustomizer ? (
+              <div style={{
+                fontSize: '3rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '120px',
+                height: '80px'
+              }}>
+                ⚾
+              </div>
+            ) : null}
+          </div>
+
+          {/* Center - Team name with customize button */}
+          <div style={{ flex: '1', textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
               <h1 style={{ margin: 0, fontSize: '2.5rem' }}>
                 {teamInfo.name || 'Baseball Dashboard'}
               </h1>
-              {teamInfo.location && (
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.1rem', opacity: 0.9 }}>
-                  {teamInfo.location}
-                </p>
-              )}
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <button
+                  onClick={() => setShowThemeCustomizer(true)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'white',
+                    padding: '0.5rem',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={() => {
+                    setShowTooltip(true);
+                  }}
+                  onMouseLeave={() => {
+                    setShowTooltip(false);
+                  }}
+                >
+                  ✏️
+                </button>
+                {showTooltip && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(0, 0, 0, 0.8)',
+                    color: 'white',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    whiteSpace: 'nowrap',
+                    marginBottom: '0.25rem',
+                    zIndex: 1000
+                  }}>
+                    Customise
+                  </div>
+                )}
+              </div>
             </div>
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <button
-                onClick={() => setShowThemeCustomizer(true)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'white',
-                  padding: '0.5rem',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={() => {
-                  setShowTooltip(true);
-                }}
-                onMouseLeave={() => {
-                  setShowTooltip(false);
-                }}
-              >
-                ✏️
-              </button>
-              {showTooltip && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: 'rgba(0, 0, 0, 0.8)',
-                  color: 'white',
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  whiteSpace: 'nowrap',
-                  marginBottom: '0.25rem',
-                  zIndex: 1000
-                }}>
-                  Customise
-                </div>
-              )}
-            </div>
+            {teamInfo.location && (
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.1rem', opacity: 0.9 }}>
+                {teamInfo.location}
+              </p>
+            )}
+          </div>
+
+          {/* Right side - Help button */}
+          <div style={{ flex: '0 0 auto' }}>
+            <a
+              href="/help"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'white',
+                textDecoration: 'none',
+                padding: '0.5rem 1rem',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '4px',
+                fontSize: '0.9rem',
+                transition: 'all 0.2s ease',
+                background: 'rgba(255, 255, 255, 0.1)'
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLAnchorElement).style.background = 'rgba(255, 255, 255, 0.2)';
+                (e.target as HTMLAnchorElement).style.borderColor = 'rgba(255, 255, 255, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLAnchorElement).style.background = 'rgba(255, 255, 255, 0.1)';
+                (e.target as HTMLAnchorElement).style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              }}
+            >
+              Help
+            </a>
           </div>
         </div>
 
@@ -244,41 +268,6 @@ function App() {
         alignItems: 'center'
       }}>
 
-        {/* Clear Buttons */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={handleClearAllPlayers}
-            style={{
-              background: '#ffc107',
-              color: 'black',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.9rem'
-            }}
-            title="Clear all players and batting order"
-          >
-            🗑️ Clear All Players
-          </button>
-          <button
-            onClick={handleClearAllData}
-            style={{
-              background: '#dc3545',
-              color: 'white',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.9rem'
-            }}
-            title="Clear all saved data (players, batting orders, CSV files)"
-          >
-            🗑️ Clear All Data
-          </button>
-        </div>
       </nav>
       
       <main style={{ 
@@ -309,6 +298,7 @@ function App() {
               onSaveBattingOrder={(config) => setSavedBattingOrders(prev => [...prev, config])}
               settings={settings}
               onSettingsChange={setSettings}
+              onClearAllPlayers={handleClearAllPlayers}
             />
           </>
         )}
@@ -324,7 +314,23 @@ function App() {
           onClose={() => setShowThemeCustomizer(false)}
         />
       )}
-    </div>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmationDialog
+        isOpen={showClearPlayersDialog}
+        title="Clear All Players"
+        message="Are you sure you want to clear all players? This will also clear your batting order and imported CSV files."
+        confirmText="Clear Players"
+        cancelText="Cancel"
+        type="warning"
+        onConfirm={confirmClearAllPlayers}
+        onCancel={() => setShowClearPlayersDialog(false)}
+      />
+
+          </div>
+        } />
+      </Routes>
+    </Router>
   );
 }
 

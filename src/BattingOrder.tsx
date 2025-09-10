@@ -1,6 +1,5 @@
 import React from 'react';
 
-// 🔄 BACKUP REMINDER: After making algorithm changes, run: node update-backup.js
 
 interface Player {
   name: string;
@@ -153,7 +152,7 @@ const BattingOrder: React.FC<BattingOrderProps> = ({ csvData }) => {
 
     if (allPlayers.length === 0) return [];
 
-    // Traditional Batting Order Algorithm
+    // Traditional Batting Order Strategy
     const battingOrder: Player[] = new Array(9).fill(null);
     const usedPlayers = new Set<string>();
 

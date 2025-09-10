@@ -28,6 +28,7 @@ export interface Player {
   firstName: string;
   lastName: string;
   position?: string;
+  fieldingPosition?: string;
   // Basic stats
   avg: number;
   obp: number;
@@ -44,6 +45,11 @@ export interface Player {
   xbh?: number;
   hr?: number;
   tb?: number;
+  // Rate-based stats (calculated from raw counts)
+  hr_rate?: number; // HR/AB
+  xbh_rate?: number; // XBH/AB
+  two_out_rbi_rate?: number; // Two_out_RBI/AB_RISP
+  ab_risp?: number; // At-bats with runners in scoring position
   // Additional stats from CSV
   [key: string]: any;
 }
@@ -59,14 +65,14 @@ export interface CSVFile {
 export interface BattingOrderConfig {
   id: string;
   name: string;
-  algorithm: 'mlb-level' | 'jacks-custom-local-league';
+  strategy: 'mlb-level' | 'jacks-custom-local-league';
   players: Player[];
   createdAt: string;
 }
 
 export interface UserSettings {
   theme: 'light' | 'dark';
-  defaultAlgorithm: 'mlb-level' | 'jacks-custom-local-league';
+  defaultStrategy: 'mlb-level' | 'jacks-custom-local-league';
   autoSave: boolean;
   showRoleDescriptions: boolean;
   showAdvancedStats: boolean;
@@ -297,7 +303,7 @@ class StorageService {
       currentBattingOrder: [],
       settings: {
         theme: 'light',
-        defaultAlgorithm: 'jacks-custom-local-league',
+        defaultStrategy: 'jacks-custom-local-league',
         autoSave: true,
         showRoleDescriptions: true,
         showAdvancedStats: false,

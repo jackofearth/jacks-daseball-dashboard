@@ -20,6 +20,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Player, BattingOrderConfig, UserSettings } from './StorageService';
+import ConfirmationDialog from './ConfirmationDialog';
+import StrategyInfoModal from './StrategyInfoModal';
 
 interface DraggableBattingOrderProps {
   players: Player[];
@@ -29,12 +31,16 @@ interface DraggableBattingOrderProps {
   onSaveBattingOrder: (config: BattingOrderConfig) => void;
   settings: UserSettings;
   onSettingsChange: (settings: UserSettings) => void;
+  onClearAllPlayers: () => void;
 }
 
 interface SortablePlayerCardProps {
   player: Player;
   position: number;
   getConfidenceLevel: (ab: number) => { level: string; label: string; color: string; icon: string; penalty: number };
+  onFieldingPositionChange: (playerId: string, position: string) => void;
+  showFieldingDropdowns: boolean;
+  availablePositions: string[];
 }
 
 // Available Player Card Component
@@ -136,7 +142,7 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
   );
 };
 
-const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, position, getConfidenceLevel }) => {
+const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, position, getConfidenceLevel, onFieldingPositionChange, showFieldingDropdowns, availablePositions }) => {
   const {
     attributes,
     listeners,
@@ -239,11 +245,36 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
         </div>
       </div>
       <div style={{ 
-        fontSize: '0.7em', 
-        color: '#999',
-        marginLeft: '0.5rem'
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem'
       }}>
-        Drag to reorder
+        {showFieldingDropdowns && (
+          <select
+            value={player.fieldingPosition || ''}
+            onChange={(e) => onFieldingPositionChange(player.id, e.target.value)}
+            style={{
+              padding: '0.25rem 0.5rem',
+              fontSize: '0.8em',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              background: 'white',
+              minWidth: '80px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <option value="">Position</option>
+            {availablePositions.map(pos => (
+              <option key={pos} value={pos}>{pos}</option>
+            ))}
+          </select>
+        )}
+        <div style={{ 
+          fontSize: '0.7em', 
+          color: '#999'
+        }}>
+          Drag to reorder
+        </div>
       </div>
     </div>
   );
@@ -256,11 +287,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   savedBattingOrders,
   onSaveBattingOrder,
   settings,
-  onSettingsChange
+  onSettingsChange,
+  onClearAllPlayers
 }) => {
+  const [showFieldingDropdowns, setShowFieldingDropdowns] = React.useState(false);
+  const [showClearBattingOrderDialog, setShowClearBattingOrderDialog] = React.useState(false);
+  const [showStrategyInfoModal, setShowStrategyInfoModal] = React.useState(false);
+  const [lastUsedStrategy, setLastUsedStrategy] = React.useState<string | null>(null);
   // Get confidence level based on AB
   const getConfidenceLevel = (ab: number) => {
-    if (ab >= 10) return { level: 'full', label: 'Full confidence', color: '#28a745', icon: '', penalty: 0 };
+    if (ab >= 12) return { level: 'full', label: 'Full confidence', color: '#28a745', icon: '', penalty: 0 };
     if (ab >= 6) return { level: 'medium', label: 'Medium confidence', color: '#ffc107', icon: '⚡', penalty: 0.15 };
     if (ab >= 3) return { level: 'low', label: 'Low confidence', color: '#fd7e14', icon: '⚠️', penalty: 0.30 };
     return { level: 'excluded', label: 'Excluded', color: '#dc3545', icon: '🚫', penalty: 1 };
@@ -288,7 +324,11 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       hr: (player.hr || 0) * (1 - penalty),
       tb: (player.tb || 0) * (1 - penalty),
       bb_k: (player.bb_k || 0) * (1 - penalty),
-      rbi: (player.rbi || 0) * (1 - penalty)
+      rbi: (player.rbi || 0) * (1 - penalty),
+      // Apply penalties to rate-based stats
+      hr_rate: (player.hr_rate || 0) * (1 - penalty),
+      xbh_rate: (player.xbh_rate || 0) * (1 - penalty),
+      two_out_rbi_rate: (player.two_out_rbi_rate || 0) * (1 - penalty)
     };
   };
 
@@ -339,14 +379,37 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     }
   };
 
+  const handleFieldingPositionChange = (playerId: string, position: string) => {
+    const updatedOrder = battingOrder.map(player => 
+      player.id === playerId 
+        ? { ...player, fieldingPosition: position }
+        : player
+    );
+    onBattingOrderChange(updatedOrder);
+  };
+
+  // Calculate available positions for each player
+  const getAvailablePositions = (currentPlayerId: string) => {
+    const allPositions = ['P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'EH'];
+    const usedPositions = battingOrder
+      .filter(player => player.id !== currentPlayerId && player.fieldingPosition && player.fieldingPosition !== 'EH')
+      .map(player => player.fieldingPosition);
+    
+    return allPositions.filter(pos => !usedPositions.includes(pos));
+  };
+
   const clearBattingOrder = () => {
-    if (window.confirm('Are you sure you want to clear the batting order? (This will not affect your player list)')) {
-      onBattingOrderChange([]);
-    }
+    setShowClearBattingOrderDialog(true);
+  };
+
+  const confirmClearBattingOrder = () => {
+    onBattingOrderChange([]);
+    setShowClearBattingOrderDialog(false);
   };
 
   const generateJacksCustomLocalLeagueOrder = () => {
     console.log('generateJacksCustomLocalLeagueOrder called, players:', players.length);
+    setLastUsedStrategy('situational');
     if (players.length === 0) {
       console.log('No players available for batting order generation');
       return;
@@ -403,9 +466,10 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     );
     assignPlayer(1, second);
 
-    // 3. Best Hitter (3rd): Still your best hitter, but situational awareness matters
+    // 3. Best Hitter (3rd): Balanced hitter with power and situational awareness
     const third = findBestPlayer(player => 
-      player.ops * 0.6 + 
+      player.ops * 0.4 + 
+      player.slg * 0.2 + 
       (player.ba_risp || 0) * 0.25 + 
       (player.qab_percent || 0) * 0.15
     );
@@ -415,7 +479,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     const cleanup = findBestPlayer(player => 
       (player.ba_risp || 0) * 0.45 + 
       player.slg * 0.35 + 
-      (player.two_out_rbi || 0) * 0.2
+      (player.two_out_rbi_rate || 0) * 0.2
     );
     assignPlayer(3, cleanup);
 
@@ -423,7 +487,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     const fifth = findBestPlayer(player => 
       player.slg * 0.45 + 
       (player.ba_risp || 0) * 0.35 + 
-      (player.two_out_rbi || 0) * 0.2
+      (player.two_out_rbi_rate || 0) * 0.2
     );
     assignPlayer(4, fifth);
 
@@ -451,6 +515,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
   const generateMLBOrder = () => {
     console.log('generateMLBOrder called, players:', players.length);
+    setLastUsedStrategy('traditional');
     if (players.length === 0) {
       console.log('No players available for batting order generation');
       return;
@@ -475,7 +540,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     // Apply confidence penalties to all players
     const penalizedPlayers = playersToUse.map(applyConfidencePenalty);
 
-    // MLB Traditional Order Algorithm - use penalized stats for ranking
+    // MLB Traditional Order Strategy - use penalized stats for ranking
     const playerStats = penalizedPlayers.map(p => ({
       ...p,
       ops: p.obp + p.slg,  // On-base + Slugging (with penalty applied)
@@ -576,7 +641,38 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
       {/* Generate Batting Order Section */}
       <div style={{ marginBottom: '2rem' }}>
-        <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Choose your strategy</h3>
+        <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+          <h3 style={{ margin: 0 }}>Choose your strategy</h3>
+          <button
+            onClick={() => setShowStrategyInfoModal(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              color: '#007bff',
+              padding: '0.25rem',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '24px',
+              height: '24px',
+              transition: 'background-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#f8f9fa';
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
+            }}
+            title="Learn about the strategies"
+          >
+            ⓘ
+          </button>
+        </div>
+        
+        
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -590,13 +686,20 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                   objectFit: 'contain',
                   marginBottom: '0.5rem',
                   cursor: 'pointer',
-                  border: '2px solid transparent',
+                  border: lastUsedStrategy === 'traditional' ? '3px solid #007bff' : '2px solid transparent',
                   borderRadius: '8px',
                   transition: 'border-color 0.2s ease'
                 }}
-                onMouseEnter={(e) => (e.target as HTMLImageElement).style.borderColor = '#28a745'}
-                onMouseLeave={(e) => (e.target as HTMLImageElement).style.borderColor = 'transparent'}
-                title="Click to generate Traditional MLB batting order"
+                onMouseEnter={(e) => {
+                  if (lastUsedStrategy !== 'traditional') {
+                    (e.target as HTMLImageElement).style.borderColor = '#007bff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (lastUsedStrategy !== 'traditional') {
+                    (e.target as HTMLImageElement).style.borderColor = 'transparent';
+                  }
+                }}
               />
                     <div style={{ 
                       fontSize: '0.9rem', 
@@ -604,13 +707,13 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                       textAlign: 'center',
                       maxWidth: '140px'
                     }}>
-                      Traditional MLB
+                      Traditional Baseball
                     </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <img 
-                src="/localleague.png"
-                alt="Local League Logo"
+                src="/situational strategy.png"
+                alt="Situational Strategy Logo"
                 onClick={generateJacksCustomLocalLeagueOrder}
                 style={{
                   width: '120px',
@@ -618,13 +721,20 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                   objectFit: 'contain',
                   marginBottom: '0.5rem',
                   cursor: 'pointer',
-                  border: '2px solid transparent',
+                  border: lastUsedStrategy === 'situational' ? '3px solid #28a745' : '2px solid transparent',
                   borderRadius: '8px',
                   transition: 'border-color 0.2s ease'
                 }}
-                onMouseEnter={(e) => (e.target as HTMLImageElement).style.borderColor = '#007bff'}
-                onMouseLeave={(e) => (e.target as HTMLImageElement).style.borderColor = 'transparent'}
-                title="Click to generate Advanced Analytics batting order"
+                onMouseEnter={(e) => {
+                  if (lastUsedStrategy !== 'situational') {
+                    (e.target as HTMLImageElement).style.borderColor = '#28a745';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (lastUsedStrategy !== 'situational') {
+                    (e.target as HTMLImageElement).style.borderColor = 'transparent';
+                  }
+                }}
               />
                     <div style={{ 
                       fontSize: '0.9rem', 
@@ -632,7 +742,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                       textAlign: 'center',
                       maxWidth: '140px'
                     }}>
-                      Advanced Analytics
+                      Situational Analytics
                     </div>
             </div>
           </div>
@@ -646,7 +756,27 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         flexDirection: 'column',
         alignItems: 'center'
       }}>
-        <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Current Batting Order ({battingOrder.length})</h3>
+        <div style={{ 
+          textAlign: 'center',
+          marginBottom: '1rem'
+        }}>
+          <h3 style={{ textAlign: 'center', margin: '0 0 0.5rem 0' }}>Current Batting Order ({battingOrder.length})</h3>
+          <button
+            onClick={() => setShowFieldingDropdowns(!showFieldingDropdowns)}
+            style={{
+              padding: '0.5rem 1rem',
+              fontSize: '0.9em',
+              background: showFieldingDropdowns ? 'var(--theme-primary)' : 'var(--theme-secondary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {showFieldingDropdowns ? 'Hide Fielding Position' : 'Show Fielding Position'}
+          </button>
+        </div>
         {battingOrder.length === 0 ? (
           <p style={{ color: 'var(--theme-secondary)', fontStyle: 'italic' }}>
             No players in batting order. Click "Generate Batting Order" or drag players from below.
@@ -661,7 +791,14 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
               <div style={{ maxWidth: '500px' }}>
                 {battingOrder.map((player, index) => (
                   <div key={player.id} style={{ position: 'relative' }}>
-                    <SortablePlayerCard player={player} position={index + 1} getConfidenceLevel={getConfidenceLevel} />
+                    <SortablePlayerCard 
+                      player={player} 
+                      position={index + 1} 
+                      getConfidenceLevel={getConfidenceLevel}
+                      onFieldingPositionChange={handleFieldingPositionChange}
+                      showFieldingDropdowns={showFieldingDropdowns}
+                      availablePositions={getAvailablePositions(player.id)}
+                    />
                     <div style={{
                       position: 'absolute',
                       right: '-50px',
@@ -741,23 +878,44 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
           </DndContext>
         )}
         
-        {/* Clear Batting Order Button */}
-        {battingOrder.length > 0 && (
+        {/* Clear Buttons */}
+        {(battingOrder.length > 0 || players.length > 0) && (
           <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-            <button 
-              onClick={clearBattingOrder}
-              style={{
-                background: '#dc3545',
-                color: 'white',
-                border: 'none',
-                padding: '0.5rem 1rem',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-              title="Clear batting order only (keeps players)"
-            >
-              Clear Batting Order
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+              {battingOrder.length > 0 && (
+                <button 
+                  onClick={clearBattingOrder}
+                  style={{
+                    background: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                  title="Clear batting order only (keeps players)"
+                >
+                  Clear Batting Order
+                </button>
+              )}
+              {players.length > 0 && (
+                <button 
+                  onClick={onClearAllPlayers}
+                  style={{
+                    background: '#ffc107',
+                    color: 'black',
+                    border: 'none',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                  title="Clear all players and batting order"
+                >
+                  🗑️ Clear All Players
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -798,6 +956,24 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
           })}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showClearBattingOrderDialog}
+        title="Clear Batting Order"
+        message="Are you sure you want to clear the batting order? This will not affect your player list."
+        confirmText="Clear Order"
+        cancelText="Cancel"
+        type="warning"
+        onConfirm={confirmClearBattingOrder}
+        onCancel={() => setShowClearBattingOrderDialog(false)}
+      />
+
+      {/* Strategy Info Modal */}
+      <StrategyInfoModal
+        isOpen={showStrategyInfoModal}
+        onClose={() => setShowStrategyInfoModal(false)}
+      />
     </div>
   );
 };

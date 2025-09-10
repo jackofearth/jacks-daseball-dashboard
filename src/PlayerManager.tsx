@@ -71,8 +71,9 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
     const slgColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SLG'));
     const opsColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OPS'));
     const abColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('AB'));
+    const abRispColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('AB/RISP'));
     
-    console.log('Stats columns found:', { avgColumn, obpColumn, slgColumn, opsColumn, abColumn });
+    console.log('Stats columns found:', { avgColumn, obpColumn, slgColumn, opsColumn, abColumn, abRispColumn });
     const sbColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB') && !firstRow[key].includes('%'));
     const sbPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB%'));
     const bbKColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('BB/K'));
@@ -144,6 +145,12 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
         const xbh = xbhColumn ? parseFloat(row[xbhColumn]) || 0 : 0;
         const hr = hrColumn ? parseFloat(row[hrColumn]) || 0 : 0;
         const tb = tbColumn ? parseFloat(row[tbColumn]) || 0 : 0;
+        const ab_risp = abRispColumn ? parseFloat(row[abRispColumn]) || 0 : 0;
+        
+        // Calculate rate-based stats with division by zero protection
+        const hr_rate = ab > 0 ? hr / ab : 0;
+        const xbh_rate = ab > 0 ? xbh / ab : 0;
+        const two_out_rbi_rate = ab_risp > 0 ? two_out_rbi / ab_risp : 0;
         
         return {
           id: generateId(),
@@ -164,7 +171,11 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
           two_out_rbi,
           xbh,
           hr,
-          tb
+          tb,
+          ab_risp,
+          hr_rate,
+          xbh_rate,
+          two_out_rbi_rate
         };
       })
       .filter(player => player.name.length > 0 && player.name !== 'First Last');
@@ -210,6 +221,17 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
   };
 
   const handleStatsSubmit = (statsData: Partial<Player>) => {
+    const ab = statsData.ab || 0;
+    const ab_risp = statsData.ab_risp || 0;
+    const hr = statsData.hr || 0;
+    const xbh = statsData.xbh || 0;
+    const two_out_rbi = statsData.two_out_rbi || 0;
+    
+    // Calculate rate-based stats with division by zero protection
+    const hr_rate = ab > 0 ? hr / ab : 0;
+    const xbh_rate = ab > 0 ? xbh / ab : 0;
+    const two_out_rbi_rate = ab_risp > 0 ? two_out_rbi / ab_risp : 0;
+    
     const newPlayer: Player = {
       id: generateId(),
       name: newPlayerName.trim(),
@@ -219,21 +241,71 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
       obp: statsData.obp || 0,
       slg: statsData.slg || 0,
       ops: statsData.ops || 0,
+      ab,
       sb: statsData.sb || 0,
       sb_percent: statsData.sb_percent || 0,
       bb_k: statsData.bb_k || 0,
       contact_percent: statsData.contact_percent || 0,
       qab_percent: statsData.qab_percent || 0,
       ba_risp: statsData.ba_risp || 0,
-      two_out_rbi: statsData.two_out_rbi || 0,
-      xbh: statsData.xbh || 0,
-      hr: statsData.hr || 0,
-      tb: statsData.tb || 0
+      two_out_rbi,
+      xbh,
+      hr,
+      tb: statsData.tb || 0,
+      ab_risp,
+      hr_rate,
+      xbh_rate,
+      two_out_rbi_rate
     };
     
     onPlayersChange([...players, newPlayer]);
     setShowStatsDialog(false);
     setNewPlayerName('');
+  };
+
+  const handleStatsSubmitAndAddAnother = (statsData: Partial<Player>) => {
+    const ab = statsData.ab || 0;
+    const ab_risp = statsData.ab_risp || 0;
+    const hr = statsData.hr || 0;
+    const xbh = statsData.xbh || 0;
+    const two_out_rbi = statsData.two_out_rbi || 0;
+    
+    // Calculate rate-based stats with division by zero protection
+    const hr_rate = ab > 0 ? hr / ab : 0;
+    const xbh_rate = ab > 0 ? xbh / ab : 0;
+    const two_out_rbi_rate = ab_risp > 0 ? two_out_rbi / ab_risp : 0;
+    
+    const newPlayer: Player = {
+      id: generateId(),
+      name: newPlayerName.trim(),
+      firstName: newPlayerName.trim().split(' ')[0] || '',
+      lastName: newPlayerName.trim().split(' ').slice(1).join(' ') || '',
+      avg: statsData.avg || 0,
+      obp: statsData.obp || 0,
+      slg: statsData.slg || 0,
+      ops: statsData.ops || 0,
+      ab,
+      sb: statsData.sb || 0,
+      sb_percent: statsData.sb_percent || 0,
+      bb_k: statsData.bb_k || 0,
+      contact_percent: statsData.contact_percent || 0,
+      qab_percent: statsData.qab_percent || 0,
+      ba_risp: statsData.ba_risp || 0,
+      two_out_rbi,
+      xbh,
+      hr,
+      tb: statsData.tb || 0,
+      ab_risp,
+      hr_rate,
+      xbh_rate,
+      two_out_rbi_rate
+    };
+    
+    onPlayersChange([...players, newPlayer]);
+    // Return to name dialog for next player
+    setShowStatsDialog(false);
+    setNewPlayerName('');
+    setShowAddDialog(true);
   };
 
   return (
@@ -414,6 +486,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
             <PlayerStatsForm
               playerName={newPlayerName}
               onSave={handleStatsSubmit}
+              onSaveAndAddAnother={handleStatsSubmitAndAddAnother}
               onCancel={() => {
                 setShowStatsDialog(false);
                 setNewPlayerName('');
@@ -431,6 +504,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
         <PlayerForm
           player={editingPlayer}
           onSave={(data) => updatePlayer(editingPlayer.id, data)}
+          onSaveAndAddAnother={(data) => updatePlayer(editingPlayer.id, data)}
           onCancel={() => {
             setEditingPlayer(null);
           }}
@@ -445,29 +519,44 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
 interface PlayerFormProps {
   player?: Player | null;
   onSave: (playerData: Omit<Player, 'id'>) => void;
+  onSaveAndAddAnother: (playerData: Omit<Player, 'id'>) => void;
   onCancel: () => void;
 }
 
-const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => {
+const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onSaveAndAddAnother, onCancel }) => {
   const [formData, setFormData] = useState({
     name: player?.name || '',
     firstName: player?.firstName || '',
     lastName: player?.lastName || '',
-    avg: player?.avg || '',
-    obp: player?.obp || '',
-    slg: player?.slg || '',
-    ops: player?.ops || '',
-    sb: player?.sb || '',
-    sb_percent: player?.sb_percent || '',
-    bb_k: player?.bb_k || '',
-    contact_percent: player?.contact_percent || '',
-    qab_percent: player?.qab_percent || '',
-    ba_risp: player?.ba_risp || '',
-    two_out_rbi: player?.two_out_rbi || '',
-    xbh: player?.xbh || '',
-    hr: player?.hr || '',
-    tb: player?.tb || ''
+    avg: player?.avg || '0.000',
+    obp: player?.obp || '0.000',
+    slg: player?.slg || '0.000',
+    ops: player?.ops || '0.000',
+    sb: player?.sb || '0.000',
+    sb_percent: player?.sb_percent || '0.000',
+    bb_k: player?.bb_k || '0.000',
+    contact_percent: player?.contact_percent || '0.000',
+    qab_percent: player?.qab_percent || '0.000',
+    ba_risp: player?.ba_risp || '0.000',
+    two_out_rbi: player?.two_out_rbi || '0.000',
+    xbh: player?.xbh || '0.000',
+    hr: player?.hr || '0.000',
+    tb: player?.tb || '0.000'
   });
+
+  // Auto-calculate OPS when OBP and SLG are entered
+  React.useEffect(() => {
+    const obp = parseFloat(String(formData.obp)) || 0;
+    const slg = parseFloat(String(formData.slg)) || 0;
+    
+    if (obp > 0 || slg > 0) {
+      const calculatedOps = obp + slg;
+      setFormData(prev => ({ ...prev, ops: String(calculatedOps) }));
+    } else if (formData.obp === '0.000' && formData.slg === '0.000') {
+      // Reset OPS to 0.000 when both OBP and SLG are at default
+      setFormData(prev => ({ ...prev, ops: '0.000' }));
+    }
+  }, [formData.obp, formData.slg]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -612,8 +701,20 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => 
               value={formData.ops || ''}
               onChange={(e) => setFormData(prev => ({ ...prev, ops: parseFloat(e.target.value) || 0 }))}
               placeholder="0.000"
-              style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
+              disabled={!!(formData.obp && formData.slg)}
+              style={{ 
+                width: '100%', 
+                padding: '0.5rem', 
+                marginTop: '0.25rem',
+                backgroundColor: (formData.obp && formData.slg) ? '#e9ecef' : 'white',
+                color: (formData.obp && formData.slg) ? '#6c757d' : 'inherit'
+              }}
             />
+            {(formData.obp && formData.slg) && (
+              <div style={{ fontSize: '0.8em', color: '#6c757d', marginTop: '0.25rem' }}>
+                Auto-calculated from OBP + SLG
+              </div>
+            )}
           </div>
           
           <div>
@@ -633,15 +734,51 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => 
         
         <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
           <button type="submit" style={{
-            background: '#007bff',
+            background: '#28a745',
             color: 'white',
             border: 'none',
             padding: '0.5rem 1rem',
             borderRadius: '4px',
             cursor: 'pointer'
           }}>
-            {player ? 'Update' : 'Add'} Player
+            Add Player
           </button>
+          {!player && (
+            <button type="button" onClick={(e) => {
+              e.preventDefault();
+              onSaveAndAddAnother({
+                ...formData,
+                name: formData.firstName && formData.lastName 
+                  ? `${formData.firstName} ${formData.lastName}`.trim()
+                  : formData.name,
+                firstName: formData.firstName || formData.name.split(' ')[0] || '',
+                lastName: formData.lastName || formData.name.split(' ').slice(1).join(' ') || '',
+                avg: formData.avg === '' ? 0 : (typeof formData.avg === 'number' ? formData.avg : parseFloat(formData.avg) || 0),
+                obp: formData.obp === '' ? 0 : (typeof formData.obp === 'number' ? formData.obp : parseFloat(formData.obp) || 0),
+                slg: formData.slg === '' ? 0 : (typeof formData.slg === 'number' ? formData.slg : parseFloat(formData.slg) || 0),
+                ops: formData.ops === '' ? 0 : (typeof formData.ops === 'number' ? formData.ops : parseFloat(formData.ops) || 0),
+                sb: formData.sb === '' ? 0 : (typeof formData.sb === 'number' ? formData.sb : parseFloat(formData.sb) || 0),
+                sb_percent: formData.sb_percent === '' ? 0 : (typeof formData.sb_percent === 'number' ? formData.sb_percent : parseFloat(formData.sb_percent) || 0),
+                bb_k: formData.bb_k === '' ? 0 : (typeof formData.bb_k === 'number' ? formData.bb_k : parseFloat(formData.bb_k) || 0),
+                contact_percent: formData.contact_percent === '' ? 0 : (typeof formData.contact_percent === 'number' ? formData.contact_percent : parseFloat(formData.contact_percent) || 0),
+                qab_percent: formData.qab_percent === '' ? 0 : (typeof formData.qab_percent === 'number' ? formData.qab_percent : parseFloat(formData.qab_percent) || 0),
+                ba_risp: formData.ba_risp === '' ? 0 : (typeof formData.ba_risp === 'number' ? formData.ba_risp : parseFloat(formData.ba_risp) || 0),
+                two_out_rbi: formData.two_out_rbi === '' ? 0 : (typeof formData.two_out_rbi === 'number' ? formData.two_out_rbi : parseFloat(formData.two_out_rbi) || 0),
+                xbh: formData.xbh === '' ? 0 : (typeof formData.xbh === 'number' ? formData.xbh : parseFloat(formData.xbh) || 0),
+                hr: formData.hr === '' ? 0 : (typeof formData.hr === 'number' ? formData.hr : parseFloat(formData.hr) || 0),
+                tb: formData.tb === '' ? 0 : (typeof formData.tb === 'number' ? formData.tb : parseFloat(formData.tb) || 0)
+              });
+            }} style={{
+              background: '#007bff',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}>
+              Add another
+            </button>
+          )}
           <button type="button" onClick={onCancel} style={{
             background: '#6c757d',
             color: 'white',
@@ -715,31 +852,47 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => 
   );
 };
 
+
 // Player Stats Form Component for the dialog
 interface PlayerStatsFormProps {
   playerName: string;
   onSave: (statsData: Partial<Player>) => void;
+  onSaveAndAddAnother: (statsData: Partial<Player>) => void;
   onCancel: () => void;
   onSkip: () => void;
 }
 
-const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, onCancel, onSkip }) => {
+const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, onSaveAndAddAnother, onCancel, onSkip }) => {
   const [formData, setFormData] = useState({
-    avg: '',
-    obp: '',
-    slg: '',
-    ops: '',
-    sb: '',
-    sb_percent: '',
-    bb_k: '',
-    contact_percent: '',
-    qab_percent: '',
-    ba_risp: '',
-    two_out_rbi: '',
-    xbh: '',
-    hr: '',
-    tb: ''
+    avg: '0.000',
+    obp: '0.000',
+    slg: '0.000',
+    ops: '0.000',
+    sb: '0.000',
+    sb_percent: '0.000',
+    bb_k: '0.000',
+    contact_percent: '0.000',
+    qab_percent: '0.000',
+    ba_risp: '0.000',
+    two_out_rbi: '0.000',
+    xbh: '0.000',
+    hr: '0.000',
+    tb: '0.000'
   });
+
+  // Auto-calculate OPS when OBP and SLG are entered
+  React.useEffect(() => {
+    const obp = parseFloat(String(formData.obp)) || 0;
+    const slg = parseFloat(String(formData.slg)) || 0;
+    
+    if (obp > 0 || slg > 0) {
+      const calculatedOps = obp + slg;
+      setFormData(prev => ({ ...prev, ops: String(calculatedOps) }));
+    } else if (formData.obp === '0.000' && formData.slg === '0.000') {
+      // Reset OPS to 0.000 when both OBP and SLG are at default
+      setFormData(prev => ({ ...prev, ops: '0.000' }));
+    }
+  }, [formData.obp, formData.slg]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -771,6 +924,7 @@ const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, o
       [field]: value
     }));
   };
+
 
   return (
     <form onSubmit={handleSubmit}>
@@ -853,14 +1007,22 @@ const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, o
             value={formData.ops}
             onChange={(e) => handleInputChange('ops', e.target.value)}
             placeholder="0.000"
+            disabled={!!(parseFloat(formData.obp) > 0 || parseFloat(formData.slg) > 0)}
             style={{
               width: '100%',
               padding: '0.5rem',
               border: '1px solid #ccc',
               borderRadius: '4px',
-              fontSize: '0.9rem'
+              fontSize: '0.9rem',
+              backgroundColor: (parseFloat(formData.obp) > 0 || parseFloat(formData.slg) > 0) ? '#e9ecef' : 'white',
+              color: (parseFloat(formData.obp) > 0 || parseFloat(formData.slg) > 0) ? '#6c757d' : 'inherit'
             }}
           />
+          {(parseFloat(formData.obp) > 0 || parseFloat(formData.slg) > 0) && (
+            <div style={{ fontSize: '0.8em', color: '#6c757d', marginTop: '0.25rem' }}>
+              Auto-calculated from OBP + SLG
+            </div>
+          )}
         </div>
       </div>
 
@@ -903,7 +1065,39 @@ const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, o
             cursor: 'pointer'
           }}
         >
-          Manually Add a Player
+          Add Player
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            onSaveAndAddAnother({
+              avg: formData.avg === '' ? 0 : (typeof formData.avg === 'number' ? formData.avg : parseFloat(formData.avg) || 0),
+              obp: formData.obp === '' ? 0 : (typeof formData.obp === 'number' ? formData.obp : parseFloat(formData.obp) || 0),
+              slg: formData.slg === '' ? 0 : (typeof formData.slg === 'number' ? formData.slg : parseFloat(formData.slg) || 0),
+              ops: formData.ops === '' ? 0 : (typeof formData.ops === 'number' ? formData.ops : parseFloat(formData.ops) || 0),
+              sb: formData.sb === '' ? 0 : (typeof formData.sb === 'number' ? formData.sb : parseFloat(formData.sb) || 0),
+              sb_percent: formData.sb_percent === '' ? 0 : (typeof formData.sb_percent === 'number' ? formData.sb_percent : parseFloat(formData.sb_percent) || 0),
+              bb_k: formData.bb_k === '' ? 0 : (typeof formData.bb_k === 'number' ? formData.bb_k : parseFloat(formData.bb_k) || 0),
+              contact_percent: formData.contact_percent === '' ? 0 : (typeof formData.contact_percent === 'number' ? formData.contact_percent : parseFloat(formData.contact_percent) || 0),
+              qab_percent: formData.qab_percent === '' ? 0 : (typeof formData.qab_percent === 'number' ? formData.qab_percent : parseFloat(formData.qab_percent) || 0),
+              ba_risp: formData.ba_risp === '' ? 0 : (typeof formData.ba_risp === 'number' ? formData.ba_risp : parseFloat(formData.ba_risp) || 0),
+              two_out_rbi: formData.two_out_rbi === '' ? 0 : (typeof formData.two_out_rbi === 'number' ? formData.two_out_rbi : parseFloat(formData.two_out_rbi) || 0),
+              xbh: formData.xbh === '' ? 0 : (typeof formData.xbh === 'number' ? formData.xbh : parseFloat(formData.xbh) || 0),
+              hr: formData.hr === '' ? 0 : (typeof formData.hr === 'number' ? formData.hr : parseFloat(formData.hr) || 0),
+              tb: formData.tb === '' ? 0 : (typeof formData.tb === 'number' ? formData.tb : parseFloat(formData.tb) || 0)
+            });
+          }}
+          style={{
+            padding: '0.5rem 1rem',
+            border: 'none',
+            borderRadius: '4px',
+            background: '#007bff',
+            color: 'white',
+            cursor: 'pointer'
+          }}
+        >
+          Add another
         </button>
       </div>
     </form>
