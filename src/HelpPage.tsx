@@ -193,7 +193,7 @@ const HelpPage: React.FC = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <p style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Q: What if I don't agree with the lineup?</p>
             <p style={{ marginBottom: '1rem', paddingLeft: '1rem', lineHeight: '1.6' }}>
-              A: The algorithm provides a data-driven starting point, but you know your players best. Use it as a guide, then make adjustments based on team chemistry, matchups, and your coaching instincts.
+              A: The algorithm provides a data-driven starting point, but you know things about your players that the strategy doesn't. Use it as a guide, then make adjustments based on team chemistry, matchups, and your coaching instincts.
             </p>
           </div>
           
