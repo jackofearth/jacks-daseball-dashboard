@@ -30,7 +30,10 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "npm start"
+    "dev": "npm start",
+    "update-features": "node update-features.js",
+    "auto-update-features": "node auto-update-features.js",
+    "setup-auto-update": "./setup-auto-update.sh"
   },
   "eslintConfig": {
     "extends": [

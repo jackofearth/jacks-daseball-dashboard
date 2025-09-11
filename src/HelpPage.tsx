@@ -94,7 +94,7 @@ const HelpPage: React.FC = () => {
             borderRadius: '4px',
             borderLeft: '4px solid #28a745'
           }}>
-            New to the tool? Start with <u>Traditional Baseball</u> strategy - it's simple and proven.
+            New to the app? Start with <u>Traditional Baseball</u> strategy - it's simple and proven.
           </p>
         </div>
 
@@ -142,7 +142,7 @@ const HelpPage: React.FC = () => {
           </h2>
           
           <div style={{ marginBottom: '1.5rem' }}>
-            <p style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Q: Why did I create this tool?</p>
+            <p style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Q: Why did I create this app?</p>
             <p style={{ marginBottom: '1rem', paddingLeft: '1rem', lineHeight: '1.6' }}>
               A: There's no reason teams who play for fun or juniors shouldn't benefit from all the advanced stats we have at our fingertips. Why base your lineup on vibes when you can base it on cold hard stats?
             </p>
@@ -165,7 +165,7 @@ const HelpPage: React.FC = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <p style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Q: How often should I regenerate my lineup?</p>
             <p style={{ marginBottom: '1rem', paddingLeft: '1rem', lineHeight: '1.6' }}>
-              A: With this tool, you can regenerate as often as you like - every game if you have the stats! Previously coaches might update lineups every 3-4 games, but now you can optimize based on the most current performance data available.
+              A: With this app, you can regenerate as often as you like - every game if you have the stats! Previously coaches might update lineups every 3-4 games, but now you can optimize based on the most current performance data available.
             </p>
           </div>
           
@@ -179,7 +179,7 @@ const HelpPage: React.FC = () => {
           <div style={{ marginBottom: '1.5rem' }}>
             <p style={{ marginBottom: '0.5rem', fontWeight: 'bold' }}>Q: My CSV import isn't working - what's wrong?</p>
             <p style={{ marginBottom: '1rem', paddingLeft: '1rem', lineHeight: '1.6' }}>
-              A: This tool accepts all GameChanger CSV exports. While GameChanger allows CSV exports of selected games, full season stats exports are recommended for this tool to ensure the confidence system works properly. For help exporting your stats from GameChanger, see their instructions here: <a href="https://help.gc.com/hc/en-us/articles/360043583651-Exporting-Season-Stats" target="_blank" rel="noopener noreferrer" style={{ color: '#007bff' }}>https://help.gc.com/hc/en-us/articles/360043583651-Exporting-Season-Stats</a>
+              A: This app accepts all GameChanger CSV exports. While GameChanger allows CSV exports of selected games, full season stats exports are recommended for this app to ensure the confidence system works properly. For help exporting your stats from GameChanger, see their instructions here: <a href="https://help.gc.com/hc/en-us/articles/360043583651-Exporting-Season-Stats" target="_blank" rel="noopener noreferrer" style={{ color: '#007bff' }}>https://help.gc.com/hc/en-us/articles/360043583651-Exporting-Season-Stats</a>
             </p>
           </div>
           
