@@ -21,7 +21,11 @@ const sourceFiles = [
   'src/HelpPage.tsx',
   'src/StrategyInfoModal.tsx',
   'src/ThemeCustomizer.tsx',
-  'src/ConfirmationDialog.tsx'
+  'src/ConfirmationDialog.tsx',
+  'src/BattingOrderPDF.tsx',
+  'src/PDFCustomizationModal.tsx',
+  'src/PDFPreviewModal.tsx',
+  'src/ConfidenceSymbolsModal.tsx'
 ];
 
 // Check if any source files have been modified since last features update
