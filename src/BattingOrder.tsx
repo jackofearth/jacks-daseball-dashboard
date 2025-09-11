@@ -54,22 +54,24 @@ const BattingOrder: React.FC<BattingOrderProps> = ({ csvData }) => {
                       value.toLowerCase().includes('last'));
     });
     
-    const avgColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('AVG'));
-    const obpColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OBP'));
-    const slgColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SLG'));
-    const opsColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OPS'));
+    // GameChanger CSV format - use exact column positions (row 2 contains headers)
+    const avgColumn = headerKeys[6];   // Column 7: AVG
+    const obpColumn = headerKeys[7];   // Column 8: OBP  
+    const slgColumn = headerKeys[9];   // Column 10: SLG
+    const opsColumn = headerKeys[8];   // Column 9: OPS
     
-    // Additional advanced stats
-    const sbColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB') && !firstRow[key].includes('%'));
-    const sbPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB%'));
-    const bbKColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('BB/K'));
-    const contactPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('C%'));
-    const qabPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('QAB%'));
-    const baRispColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('BA/RISP'));
-    const twoOutRbiColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('2OUTRBI'));
-    const xbhColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('XBH'));
-    const hrColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('HR'));
-    const tbColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('TB'));
+    // Additional advanced stats - GameChanger CSV positions
+    const sbColumn = headerKeys[25];   // Column 26: SB
+    const sbPercentColumn = headerKeys[26]; // Column 27: SB%
+    const bbKColumn = headerKeys[31];  // Column 32: BB/K
+    const contactPercentColumn = headerKeys[32]; // Column 33: C%
+    const qabPercentColumn = headerKeys[29]; // Column 30: QAB%
+    const baRispColumn = headerKeys[38]; // Column 39: BA/RISP
+    const twoOutRbiColumn = headerKeys[40]; // Column 41: 2OUTRBI
+    const xbhColumn = headerKeys[41];  // Column 42: XBH
+    const hrColumn = headerKeys[13];   // Column 14: HR
+    const tbColumn = headerKeys[42];   // Column 43: TB
+    const lobColumn = headerKeys[39];  // Column 40: LOB
     
     console.log('Found columns:', { nameColumns, avgColumn, obpColumn, slgColumn, opsColumn });
     console.log('First row values:', firstRow);
@@ -118,7 +120,7 @@ const BattingOrder: React.FC<BattingOrderProps> = ({ csvData }) => {
         const slg = slgColumn ? parseFloat(row[slgColumn]) || 0 : 0;
         const ops = opsColumn ? parseFloat(row[opsColumn]) || 0 : (obp + slg);
         
-        // Additional advanced stats
+        // Additional advanced stats - GameChanger CSV format
         const sb = sbColumn ? parseFloat(row[sbColumn]) || 0 : 0;
         const sbPercent = sbPercentColumn ? parseFloat(row[sbPercentColumn]) || 0 : 0;
         const bbK = bbKColumn ? parseFloat(row[bbKColumn]) || 0 : 0;
@@ -129,6 +131,7 @@ const BattingOrder: React.FC<BattingOrderProps> = ({ csvData }) => {
         const xbh = xbhColumn ? parseFloat(row[xbhColumn]) || 0 : 0;
         const hr = hrColumn ? parseFloat(row[hrColumn]) || 0 : 0;
         const tb = tbColumn ? parseFloat(row[tbColumn]) || 0 : 0;
+        const lob = lobColumn ? parseFloat(row[lobColumn]) || 0 : 0;
         
         return {
           name,
@@ -145,7 +148,8 @@ const BattingOrder: React.FC<BattingOrderProps> = ({ csvData }) => {
           twoOutRbi,
           xbh,
           hr,
-          tb
+          tb,
+          lob
         };
       })
       .filter(player => player.avg > 0 && player.name.length > 0); // Only players with batting stats and names

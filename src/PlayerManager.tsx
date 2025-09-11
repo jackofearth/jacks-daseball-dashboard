@@ -66,24 +66,35 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
       }
     }
     
-    const avgColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('AVG'));
-    const obpColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OBP'));
-    const slgColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SLG'));
-    const opsColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('OPS'));
-    const abColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('AB'));
-    const abRispColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('AB/RISP'));
+    // GameChanger CSV format - use exact column positions (row 2 contains headers)
+    // Column positions based on actual CSV structure:
+    // Number,Last,First,GP,PA,AB,AVG,OBP,OPS,SLG,H,1B,2B,3B,HR,RBI,R,BB,SO,K-L,HBP,SAC,SF,ROE,FC,SB,SB%,CS,PIK,QAB,QAB%,PA/BB,BB/K,C%,HHB,LD%,FB%,GB%,BABIP,BA/RISP,LOB,2OUTRBI,XBH,TB...
     
-    console.log('Stats columns found:', { avgColumn, obpColumn, slgColumn, opsColumn, abColumn, abRispColumn });
-    const sbColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB') && !firstRow[key].includes('%'));
-    const sbPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('SB%'));
-    const bbKColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('BB/K'));
-    const contactPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('C%'));
-    const qabPercentColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('QAB%'));
-    const baRispColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('BA/RISP'));
-    const twoOutRbiColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('2OUTRBI'));
-    const xbhColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('XBH'));
-    const hrColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('HR'));
-    const tbColumn = headerKeys.find(key => firstRow[key] && firstRow[key].toUpperCase().includes('TB'));
+    const avgColumn = headerKeys[6];   // Column 7: AVG
+    const obpColumn = headerKeys[7];   // Column 8: OBP  
+    const slgColumn = headerKeys[9];   // Column 10: SLG
+    const opsColumn = headerKeys[8];   // Column 9: OPS
+    const abColumn = headerKeys[5];    // Column 6: AB
+    const abRispColumn = null;         // Not available in GameChanger CSV
+    
+    const sbColumn = headerKeys[25];   // Column 26: SB
+    const sbPercentColumn = headerKeys[26]; // Column 27: SB%
+    const bbKColumn = headerKeys[31];  // Column 32: BB/K
+    const contactPercentColumn = headerKeys[32]; // Column 33: C%
+    const qabPercentColumn = headerKeys[29]; // Column 30: QAB%
+    const baRispColumn = headerKeys[38]; // Column 39: BA/RISP
+    const twoOutRbiColumn = headerKeys[40]; // Column 41: 2OUTRBI
+    const xbhColumn = headerKeys[41];  // Column 42: XBH
+    const hrColumn = headerKeys[13];   // Column 14: HR
+    const tbColumn = headerKeys[42];   // Column 43: TB
+    const lobColumn = headerKeys[39];  // Column 40: LOB
+    
+    console.log('GameChanger CSV columns mapped:', { 
+      avgColumn, obpColumn, slgColumn, opsColumn, abColumn,
+      sbColumn, sbPercentColumn, bbKColumn, contactPercentColumn, 
+      qabPercentColumn, baRispColumn, twoOutRbiColumn, xbhColumn, 
+      hrColumn, tbColumn, lobColumn 
+    });
 
     console.log('Name columns found:', { firstColumn, lastColumn, nameColumns });
     console.log('Sample row data:', csvData[0]);
@@ -145,7 +156,64 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
         const xbh = xbhColumn ? parseFloat(row[xbhColumn]) || 0 : 0;
         const hr = hrColumn ? parseFloat(row[hrColumn]) || 0 : 0;
         const tb = tbColumn ? parseFloat(row[tbColumn]) || 0 : 0;
-        const ab_risp = abRispColumn ? parseFloat(row[abRispColumn]) || 0 : 0;
+        const lob = lobColumn ? parseFloat(row[lobColumn]) || 0 : 0;
+        // Calculate ab_risp with comprehensive multi-method estimation (GameChanger CSV doesn't have AB/RISP)
+        const ab_risp = (() => {
+          const totalAB = ab || 0;
+          if (totalAB === 0) return 0;
+          
+          // Method 1: If we have BA/RISP, use it for most accurate estimation
+          if (ba_risp > 0) {
+            // Estimate hits with RISP from BA/RISP
+            // In amateur baseball, RISP opportunities vary by batting order position and team context
+            const estimatedRispHits = Math.round((totalAB * 0.35) * ba_risp);
+            return Math.max(1, Math.round(estimatedRispHits / ba_risp));
+          }
+          
+          // Method 2: Use LOB data (more runners = more RISP opportunities)
+          if (lob > 0) {
+            // LOB indicates how often this player was up with runners on base
+            // Higher LOB = more RISP opportunities
+            const lobFactor = Math.min(1.5, Math.max(0.5, lob / 10));
+            return Math.max(1, Math.round(totalAB * 0.25 * lobFactor));
+          }
+          
+          // Method 3: Use RBI data as proxy for RISP opportunities
+          const rbiColumn = headerKeys[14]; // Column 15: RBI
+          if (rbiColumn) {
+            const rbi = parseFloat(row[rbiColumn]) || 0;
+            if (rbi > 0) {
+              // Players with more RBI likely had more RISP opportunities
+              // Estimate: 1 RISP AB for every 2-3 RBI in amateur baseball
+              const rbiFactor = Math.min(1.2, Math.max(0.8, rbi / 10));
+              return Math.max(1, Math.round(totalAB * 0.28 * rbiFactor));
+            }
+          }
+          
+          // Method 4: Use batting order position (if available from name patterns)
+          // Higher in order = more RISP opportunities
+          const battingOrderFactor = (() => {
+            const name = (firstName + ' ' + lastName).toLowerCase();
+            // This is a rough heuristic - in practice, you'd need actual batting order data
+            if (name.includes('lead') || name.includes('1st')) return 1.3;
+            if (name.includes('2nd') || name.includes('3rd')) return 1.2;
+            if (name.includes('4th') || name.includes('5th')) return 1.1;
+            return 1.0;
+          })();
+          
+          // Method 5: Use team context (more team runs = more RISP opportunities)
+          const runsColumn = headerKeys[15]; // Column 16: R
+          if (runsColumn) {
+            const runs = parseFloat(row[runsColumn]) || 0;
+            const teamContextFactor = runs > 5 ? 1.2 : runs > 2 ? 1.1 : 1.0;
+            return Math.max(1, Math.round(totalAB * 0.25 * battingOrderFactor * teamContextFactor));
+          }
+          
+          // Method 6: Default estimation based on AB and player type
+          if (totalAB >= 20) return Math.round(totalAB * 0.30 * battingOrderFactor); // 30% for regular players
+          if (totalAB >= 10) return Math.round(totalAB * 0.25 * battingOrderFactor); // 25% for part-time players
+          return Math.max(1, Math.round(totalAB * 0.20 * battingOrderFactor)); // 20% for limited AB
+        })();
         
         // Calculate rate-based stats with division by zero protection
         const hr_rate = ab > 0 ? hr / ab : 0;
@@ -172,6 +240,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({ players, onPlayers
           xbh,
           hr,
           tb,
+          lob,
           ab_risp,
           hr_rate,
           xbh_rate,

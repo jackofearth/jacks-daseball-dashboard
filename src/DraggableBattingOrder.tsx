@@ -19,9 +19,15 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Player, BattingOrderConfig, UserSettings } from './StorageService';
+import { Player, BattingOrderConfig, UserSettings, TeamInfo } from './StorageService';
 import ConfirmationDialog from './ConfirmationDialog';
 import StrategyInfoModal from './StrategyInfoModal';
+import ConfidenceSymbolsModal from './ConfidenceSymbolsModal';
+import BattingOrderPDF from './BattingOrderPDF';
+import PDFCustomizationModal, { PDFExportOptions } from './PDFCustomizationModal';
+import PDFPreviewModal from './PDFPreviewModal';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface DraggableBattingOrderProps {
   players: Player[];
@@ -32,6 +38,7 @@ interface DraggableBattingOrderProps {
   settings: UserSettings;
   onSettingsChange: (settings: UserSettings) => void;
   onClearAllPlayers: () => void;
+  teamInfo: TeamInfo;
 }
 
 interface SortablePlayerCardProps {
@@ -280,20 +287,239 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
   );
 };
 
-export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({ 
-  players, 
-  battingOrder, 
+export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
+  players,
+  battingOrder,
   onBattingOrderChange,
   savedBattingOrders,
   onSaveBattingOrder,
   settings,
   onSettingsChange,
-  onClearAllPlayers
+  onClearAllPlayers,
+  teamInfo
 }) => {
-  const [showFieldingDropdowns, setShowFieldingDropdowns] = React.useState(false);
+  const [showFieldingDropdowns, setShowFieldingDropdowns] = React.useState(() => {
+    const saved = localStorage.getItem('showFieldingDropdowns');
+    return saved ? JSON.parse(saved) : false;
+  });
   const [showClearBattingOrderDialog, setShowClearBattingOrderDialog] = React.useState(false);
+  
+  // Save fielding dropdowns state to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('showFieldingDropdowns', JSON.stringify(showFieldingDropdowns));
+  }, [showFieldingDropdowns]);
+
+  // Load fielding positions from localStorage when batting order changes
+  React.useEffect(() => {
+    const savedFieldingPositions = localStorage.getItem('fieldingPositions');
+    if (savedFieldingPositions && battingOrder.length > 0) {
+      const fieldingPositions = JSON.parse(savedFieldingPositions);
+      const updatedOrder = battingOrder.map(player => ({
+        ...player,
+        fieldingPosition: fieldingPositions[player.id] || player.fieldingPosition
+      }));
+      
+      // Only update if there are actual changes to avoid infinite loops
+      const hasChanges = updatedOrder.some((player, index) => 
+        player.fieldingPosition !== battingOrder[index].fieldingPosition
+      );
+      
+      if (hasChanges) {
+        onBattingOrderChange(updatedOrder);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [battingOrder.length]); // Only run when batting order length changes (new players added)
   const [showStrategyInfoModal, setShowStrategyInfoModal] = React.useState(false);
+  const [showConfidenceSymbolsModal, setShowConfidenceSymbolsModal] = React.useState(false);
   const [lastUsedStrategy, setLastUsedStrategy] = React.useState<string | null>(null);
+  const [showStrategyTooltip, setShowStrategyTooltip] = React.useState(false);
+  // Player positions - LOCKED and permanent for all users (STATIC - NO STATE)
+  const playerPositions = {
+    P: { top: 379, left: 300 },    // Pitcher - center of diamond (LOCKED)
+    C: { top: 509, left: 300 },    // Catcher - behind home plate (LOCKED)
+    '1B': { top: 375, left: 480 }, // First base - right side (LOCKED)
+    '2B': { top: 250, left: 355 }, // Second base - left side (LOCKED)
+    '3B': { top: 375, left: 130 }, // Third base - right side (LOCKED)
+    SS: { top: 285, left: 210 },   // Shortstop - left side (LOCKED)
+    LF: { top: 190, left: 125 },   // Left field - left side (LOCKED)
+    CF: { top: 105, left: 300 },   // Center field - top center (LOCKED)
+    RF: { top: 185, left: 490 }    // Right field - right side (LOCKED)
+  };
+
+  const [showConfidenceTooltip, setShowConfidenceTooltip] = React.useState(false);
+  const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
+  const [isExportingPDF, setIsExportingPDF] = React.useState(false);
+  const [showPDFCustomization, setShowPDFCustomization] = React.useState(false);
+  const [showPDFPreview, setShowPDFPreview] = React.useState(false);
+  const [pdfOptions, setPdfOptions] = React.useState<PDFExportOptions>({
+    coachName: '',
+    opponent: '',
+    date: new Date().toLocaleDateString(),
+    showFieldingPositions: true
+  });
+
+  // PDF Export Function
+  const exportToPDF = async (options: PDFExportOptions) => {
+    if (battingOrder.length === 0) {
+      alert('Please generate a batting order first');
+      return;
+    }
+
+    setIsExportingPDF(true);
+    
+    try {
+      // Show the PDF component temporarily
+      const pdfElement = document.getElementById('pdf-lineup-card');
+      if (pdfElement) {
+        // Make sure it's visible and positioned properly
+        pdfElement.style.display = 'block';
+        pdfElement.style.position = 'fixed';
+        pdfElement.style.top = '0px';
+        pdfElement.style.left = '0px';
+        pdfElement.style.zIndex = '9999';
+        pdfElement.style.backgroundColor = 'white';
+        
+        // Wait longer for images to load
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Capture the element as canvas with balanced resolution
+        const canvas = await html2canvas(pdfElement, {
+          scale: 2, // Balanced resolution
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: true,
+          width: 1100,
+          height: 850,
+          scrollX: 0,
+          scrollY: 0,
+          foreignObjectRendering: false
+        });
+        
+        // Hide the PDF component again
+        pdfElement.style.display = 'none';
+        
+        // Check if canvas has content
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
+        const hasContent = imageData && Array.from(imageData.data).some(pixel => pixel !== 255);
+        
+        if (!hasContent) {
+          throw new Error('Canvas appears to be empty');
+        }
+        
+        // Use canvas directly for better quality
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        
+        // Create PDF
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // Calculate dimensions to fit the image
+        const imgWidth = 210; // A4 width in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        pdf.save(`${teamInfo?.name || 'Team'}-batting-lineup.pdf`);
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      
+      // Try fallback method without html2canvas
+      try {
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // Add header
+        pdf.setFontSize(24);
+        pdf.setTextColor(220, 53, 69); // Red color
+        pdf.text(`${teamInfo?.name || 'Team'}`, 20, 25);
+        
+        pdf.setFontSize(18);
+        pdf.setTextColor(0, 123, 255); // Blue color
+        pdf.text('BATTING LINEUP', 20, 35);
+        
+        // Add batting order with better formatting
+        pdf.setFontSize(14);
+        pdf.setTextColor(0, 0, 0); // Black color
+        let yPos = 50;
+        
+        // Create a table-like layout
+        pdf.setLineWidth(0.5);
+        pdf.setDrawColor(0, 123, 255);
+        
+        battingOrder.forEach((player, index) => {
+          if (player) {
+            // Draw line
+            pdf.line(20, yPos - 2, 190, yPos - 2);
+            
+            // Add player info
+            pdf.text(`${index + 1}.`, 25, yPos);
+            pdf.text(player.name, 35, yPos);
+            pdf.text(`AVG: ${player.avg.toFixed(3)}`, 150, yPos);
+            yPos += 8;
+          }
+        });
+        
+        // Add game info section
+        yPos += 20;
+        pdf.setFontSize(12);
+        pdf.setTextColor(220, 53, 69);
+        
+        if (options.coachName) {
+          pdf.text(`Coach: ${options.coachName}`, 20, yPos);
+          yPos += 8;
+        }
+        if (options.opponent) {
+          pdf.text(`vs: ${options.opponent}`, 20, yPos);
+          yPos += 8;
+        }
+        if (options.date) {
+          pdf.text(`Date: ${options.date}`, 20, yPos);
+        }
+        
+        pdf.save(`${teamInfo?.name || 'Team'}-batting-lineup.pdf`);
+        alert('PDF generated successfully (text-only version due to image processing issues)');
+      } catch (fallbackError) {
+        console.error('Fallback PDF generation failed:', fallbackError);
+        alert('Error generating PDF. Please try again or contact support.');
+      }
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
+  // Handle PDF customization
+  const handlePDFCustomization = () => {
+    setShowPDFCustomization(true);
+  };
+
+  // Handle PDF customization completion
+  const handlePDFCustomizationComplete = (options: PDFExportOptions) => {
+    setPdfOptions(options);
+    setShowPDFCustomization(false);
+    setShowPDFPreview(true);
+  };
+
+  // Handle PDF preview export
+  const handlePDFPreviewExport = async (options: PDFExportOptions) => {
+    setShowPDFPreview(false);
+    await exportToPDF(options);
+  };
+
+  // Handle back to customization
+  const handleBackToCustomization = () => {
+    setShowPDFPreview(false);
+    setShowPDFCustomization(true);
+  };
+
   // Get confidence level based on AB
   const getConfidenceLevel = (ab: number) => {
     if (ab >= 12) return { level: 'full', label: 'Full confidence', color: '#28a745', icon: '', penalty: 0 };
@@ -302,33 +528,49 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     return { level: 'excluded', label: 'Excluded', color: '#dc3545', icon: '🚫', penalty: 1 };
   };
 
-  // Apply confidence penalty to offensive stats
+  // Get basic stats penalty (based on total AB)
+  const getBasicStatsPenalty = (ab: number) => {
+    if (ab >= 12) return 0;      // Full confidence
+    if (ab >= 6) return 0.15;    // Medium confidence  
+    if (ab >= 3) return 0.30;    // Low confidence
+    return 1;                    // Excluded
+  };
+
+  // Get situational stats penalty (based on situational AB)
+  const getSituationalStatsPenalty = (situationalAb: number) => {
+    if (situationalAb >= 5) return 0;      // Full confidence
+    if (situationalAb >= 3) return 0.10;   // Light penalty
+    if (situationalAb >= 1) return 0.25;   // Medium penalty
+    return 0.50;                           // Heavy penalty (but not excluded)
+  };
+
+  // Apply confidence penalty to offensive stats with different penalties for basic vs situational
   const applyConfidencePenalty = (player: Player) => {
-    const confidence = getConfidenceLevel(player.ab || 0);
-    const penalty = confidence.penalty;
-    
-    if (penalty === 0) return player; // No penalty for full confidence
+    const basicPenalty = getBasicStatsPenalty(player.ab || 0);
+    const situationalPenalty = getSituationalStatsPenalty(player.ab_risp || 0);
     
     return {
       ...player,
-      avg: (player.avg || 0) * (1 - penalty),
-      obp: (player.obp || 0) * (1 - penalty),
-      slg: (player.slg || 0) * (1 - penalty),
-      ops: (player.ops || 0) * (1 - penalty),
-      sb_percent: (player.sb_percent || 0) * (1 - penalty),
-      contact_percent: (player.contact_percent || 0) * (1 - penalty),
-      qab_percent: (player.qab_percent || 0) * (1 - penalty),
-      ba_risp: (player.ba_risp || 0) * (1 - penalty),
-      two_out_rbi: (player.two_out_rbi || 0) * (1 - penalty),
-      xbh: (player.xbh || 0) * (1 - penalty),
-      hr: (player.hr || 0) * (1 - penalty),
-      tb: (player.tb || 0) * (1 - penalty),
-      bb_k: (player.bb_k || 0) * (1 - penalty),
-      rbi: (player.rbi || 0) * (1 - penalty),
-      // Apply penalties to rate-based stats
-      hr_rate: (player.hr_rate || 0) * (1 - penalty),
-      xbh_rate: (player.xbh_rate || 0) * (1 - penalty),
-      two_out_rbi_rate: (player.two_out_rbi_rate || 0) * (1 - penalty)
+      // Basic stats get basic penalty
+      avg: (player.avg || 0) * (1 - basicPenalty),
+      obp: (player.obp || 0) * (1 - basicPenalty),
+      slg: (player.slg || 0) * (1 - basicPenalty),
+      ops: (player.ops || 0) * (1 - basicPenalty),
+      sb_percent: (player.sb_percent || 0) * (1 - basicPenalty),
+      contact_percent: (player.contact_percent || 0) * (1 - basicPenalty),
+      qab_percent: (player.qab_percent || 0) * (1 - basicPenalty),
+      xbh: (player.xbh || 0) * (1 - basicPenalty),
+      hr: (player.hr || 0) * (1 - basicPenalty),
+      tb: (player.tb || 0) * (1 - basicPenalty),
+      bb_k: (player.bb_k || 0) * (1 - basicPenalty),
+      rbi: (player.rbi || 0) * (1 - basicPenalty),
+      // Rate-based stats get basic penalty
+      hr_rate: (player.hr_rate || 0) * (1 - basicPenalty),
+      xbh_rate: (player.xbh_rate || 0) * (1 - basicPenalty),
+      // Situational stats get situational penalty
+      ba_risp: (player.ba_risp || 0) * (1 - situationalPenalty),
+      two_out_rbi: (player.two_out_rbi || 0) * (1 - situationalPenalty),
+      two_out_rbi_rate: (player.two_out_rbi_rate || 0) * (1 - situationalPenalty)
     };
   };
 
@@ -386,6 +628,15 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         : player
     );
     onBattingOrderChange(updatedOrder);
+    
+    // Save fielding positions to localStorage
+    const fieldingPositions = updatedOrder.reduce((acc, player) => {
+      if (player.fieldingPosition) {
+        acc[player.id] = player.fieldingPosition;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+    localStorage.setItem('fieldingPositions', JSON.stringify(fieldingPositions));
   };
 
   // Calculate available positions for each player
@@ -449,52 +700,96 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       }
     };
 
+    // Helper function to evaluate players with situational fallbacks
+    const evaluatePlayer = (player: Player, position: number) => {
+      const hasSituationalData = (player.ab_risp || 0) >= 2;
+      const situationalConfidence = (player.ab_risp || 0) >= 5 ? 1.0 : (player.ab_risp || 0) >= 3 ? 0.7 : 0.3;
+      
+      switch (position) {
+        case 0: // Lead-off (1st): Speed + OBP
+          return player.obp * 0.4 + 
+                 (player.sb_percent || 0) * 0.3 + 
+                 (player.contact_percent || 0) * 0.2 + 
+                 player.avg * 0.1;
+                 
+        case 1: // Table Setter (2nd): Contact + Situational
+          if (hasSituationalData) {
+            return (player.contact_percent || 0) * 0.4 + 
+                   (player.ba_risp || 0) * 0.3 * situationalConfidence + 
+                   (player.qab_percent || 0) * 0.2 +
+                   player.avg * 0.1 * (1 - situationalConfidence);
+          } else {
+            return (player.contact_percent || 0) * 0.5 + 
+                   player.avg * 0.3 + 
+                   (player.qab_percent || 0) * 0.2;
+          }
+          
+        case 2: // Best Hitter (3rd): Balanced
+          if (hasSituationalData) {
+            return player.ops * 0.3 + 
+                   player.slg * 0.2 + 
+                   (player.ba_risp || 0) * 0.25 * situationalConfidence + 
+                   (player.qab_percent || 0) * 0.15 +
+                   player.avg * 0.1 * (1 - situationalConfidence);
+          } else {
+            return player.ops * 0.5 + 
+                   player.slg * 0.3 + 
+                   (player.qab_percent || 0) * 0.2;
+          }
+          
+        case 3: // Clean-up (4th): Clutch + Power
+          if (hasSituationalData) {
+            return (player.ba_risp || 0) * 0.45 * situationalConfidence + 
+                   player.slg * 0.35 + 
+                   (player.two_out_rbi_rate || 0) * 0.20 * situationalConfidence +
+                   player.ops * 0.15 * (1 - situationalConfidence);
+          } else {
+            return player.slg * 0.50 +      // Power
+                   player.ops * 0.30 +      // Overall hitting
+                   player.avg * 0.20;       // Contact
+          }
+          
+        case 4: // Protection (5th): Power + Situational
+          if (hasSituationalData) {
+            return player.slg * 0.35 + 
+                   (player.ba_risp || 0) * 0.35 * situationalConfidence + 
+                   (player.two_out_rbi_rate || 0) * 0.20 * situationalConfidence +
+                   player.ops * 0.10 * (1 - situationalConfidence);
+          } else {
+            return player.slg * 0.50 + 
+                   player.ops * 0.30 + 
+                   player.avg * 0.20;
+          }
+          
+        default: // 6-9: OPS based
+          return player.ops;
+      }
+    };
+
     // 1. Lead-off (1st): More speed emphasis - leadoff needs to steal bases
-    const leadoff = findBestPlayer(player => 
-      player.obp * 0.4 + 
-      (player.sb_percent || 0) * 0.3 + 
-      (player.contact_percent || 0) * 0.2 + 
-      player.avg * 0.1
-    );
+    const leadoff = findBestPlayer(player => evaluatePlayer(player, 0));
     assignPlayer(0, leadoff);
 
     // 2. Table Setter (2nd): Heavy contact focus - must put ball in play to move runner
-    const second = findBestPlayer(player => 
-      (player.contact_percent || 0) * 0.5 + 
-      (player.ba_risp || 0) * 0.3 + 
-      (player.qab_percent || 0) * 0.2
-    );
+    const second = findBestPlayer(player => evaluatePlayer(player, 1));
     assignPlayer(1, second);
 
     // 3. Best Hitter (3rd): Balanced hitter with power and situational awareness
-    const third = findBestPlayer(player => 
-      player.ops * 0.4 + 
-      player.slg * 0.2 + 
-      (player.ba_risp || 0) * 0.25 + 
-      (player.qab_percent || 0) * 0.15
-    );
+    const third = findBestPlayer(player => evaluatePlayer(player, 2));
     assignPlayer(2, third);
 
     // 4. Clean-up (4th): Clutch situations are everything - raw power is secondary
-    const cleanup = findBestPlayer(player => 
-      (player.ba_risp || 0) * 0.45 + 
-      player.slg * 0.35 + 
-      (player.two_out_rbi_rate || 0) * 0.2
-    );
+    const cleanup = findBestPlayer(player => evaluatePlayer(player, 3));
     assignPlayer(3, cleanup);
 
     // 5. Protection (5th): SLG: 45% | RISP: 35% | Two-out RBI: 20%
-    const fifth = findBestPlayer(player => 
-      player.slg * 0.45 + 
-      (player.ba_risp || 0) * 0.35 + 
-      (player.two_out_rbi_rate || 0) * 0.2
-    );
+    const fifth = findBestPlayer(player => evaluatePlayer(player, 4));
     assignPlayer(4, fifth);
 
     // 6-9. Fill remaining positions by OPS (descending)
     const remainingPlayers = allPlayers
       .filter(player => !usedPlayers.has(player.id))
-      .sort((a, b) => b.ops - a.ops);
+      .sort((a, b) => evaluatePlayer(b, 5) - evaluatePlayer(a, 5));
 
     for (let i = 5; i < 9; i++) {
       if (remainingPlayers[i - 5]) {
@@ -662,11 +957,28 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
             }}
             onMouseEnter={(e) => {
               (e.target as HTMLButtonElement).style.backgroundColor = '#f8f9fa';
+              const rect = e.currentTarget.getBoundingClientRect();
+              const viewportWidth = window.innerWidth;
+              const tooltipWidth = 200; // Approximate tooltip width
+              
+              // Position tooltip to avoid covering content with more buffer
+              let x = rect.left + rect.width / 2;
+              if (x + tooltipWidth / 2 > viewportWidth - 30) {
+                x = viewportWidth - tooltipWidth / 2 - 30;
+              } else if (x - tooltipWidth / 2 < 30) {
+                x = tooltipWidth / 2 + 30;
+              }
+              
+              setTooltipPosition({
+                x: x,
+                y: rect.top - 25
+              });
+              setShowStrategyTooltip(true);
             }}
             onMouseLeave={(e) => {
               (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
+              setShowStrategyTooltip(false);
             }}
-            title="Learn about the strategies"
           >
             ⓘ
           </button>
@@ -894,6 +1206,26 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                   Clear Batting Order
                 </button>
               )}
+              {battingOrder.length > 0 && (
+                <>
+                  <button 
+                    onClick={handlePDFCustomization}
+                    disabled={isExportingPDF}
+                    style={{
+                      background: isExportingPDF ? '#6c757d' : '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '4px',
+                      cursor: isExportingPDF ? 'not-allowed' : 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                    title="Export batting order as PDF"
+                  >
+                    {isExportingPDF ? 'Generating PDF...' : '📄 Export PDF'}
+                  </button>
+                </>
+              )}
               {players.length > 0 && (
                 <button 
                   onClick={onClearAllPlayers}
@@ -922,7 +1254,69 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         flexDirection: 'column',
         alignItems: 'center'
       }}>
-        <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Available Players ({players.length})</h3>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          marginBottom: '1rem',
+          width: '100%',
+          maxWidth: '800px'
+        }}>
+          <div style={{ flex: 1 }}></div>
+          <h3 style={{ textAlign: 'center', margin: 0, flex: 2 }}>Available Players ({players.length})</h3>
+          <div style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            flex: 1,
+            justifyContent: 'flex-end'
+          }}>
+            <span style={{ fontSize: '1.2rem', color: '#ffc107' }}>⚡</span>
+            <span style={{ fontSize: '1.2rem', color: '#fd7e14' }}>⚠️</span>
+            <span style={{ fontSize: '1.2rem', color: '#dc3545' }}>🚫</span>
+            <button
+              onClick={() => setShowConfidenceSymbolsModal(true)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                color: '#007bff',
+                padding: '0.25rem',
+                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                marginLeft: '0.25rem'
+              }}
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const viewportWidth = window.innerWidth;
+                const tooltipWidth = 200; // Approximate tooltip width
+                
+                // Position tooltip to avoid covering content with more buffer
+                let x = rect.left + rect.width / 2;
+                if (x + tooltipWidth / 2 > viewportWidth - 30) {
+                  x = viewportWidth - tooltipWidth / 2 - 30;
+                } else if (x - tooltipWidth / 2 < 30) {
+                  x = tooltipWidth / 2 + 30;
+                }
+                
+                setTooltipPosition({
+                  x: x,
+                  y: rect.top - 25
+                });
+                setShowConfidenceTooltip(true);
+              }}
+              onMouseLeave={() => setShowConfidenceTooltip(false)}
+            >
+              ⓘ
+            </button>
+          </div>
+        </div>
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
@@ -969,6 +1363,97 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       <StrategyInfoModal
         isOpen={showStrategyInfoModal}
         onClose={() => setShowStrategyInfoModal(false)}
+      />
+
+      {/* Confidence Symbols Modal */}
+      <ConfidenceSymbolsModal
+        isOpen={showConfidenceSymbolsModal}
+        onClose={() => setShowConfidenceSymbolsModal(false)}
+      />
+
+      {/* Strategy Tooltip */}
+      {showStrategyTooltip && ReactDOM.createPortal(
+        <div style={{
+          position: 'fixed',
+          left: tooltipPosition.x,
+          top: tooltipPosition.y,
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.9)',
+          color: 'white',
+          padding: '0.4rem 0.6rem',
+          borderRadius: '4px',
+          fontSize: '0.75rem',
+          whiteSpace: 'nowrap',
+          zIndex: 10000,
+          pointerEvents: 'none',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+          fontFamily: 'Arial, sans-serif',
+          maxWidth: '180px',
+          textAlign: 'center'
+        }}>
+          Learn about the strategies
+        </div>,
+        document.body
+      )}
+
+      {/* Confidence Tooltip */}
+      {showConfidenceTooltip && ReactDOM.createPortal(
+        <div style={{
+          position: 'fixed',
+          left: tooltipPosition.x,
+          top: tooltipPosition.y,
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.9)',
+          color: 'white',
+          padding: '0.4rem 0.6rem',
+          borderRadius: '4px',
+          fontSize: '0.75rem',
+          whiteSpace: 'nowrap',
+          zIndex: 10000,
+          pointerEvents: 'none',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
+          fontFamily: 'Arial, sans-serif',
+          maxWidth: '180px',
+          textAlign: 'center'
+        }}>
+          What are these symbols?
+        </div>,
+        document.body
+      )}
+
+
+      {/* PDF Component - Hidden by default for actual PDF generation */}
+      <div id="pdf-lineup-card" style={{ display: 'none' }}>
+        <BattingOrderPDF 
+          battingOrder={battingOrder}
+          teamName={teamInfo?.name || 'My Team'}
+          teamInfo={teamInfo}
+          playerPositions={playerPositions}
+          coachName={pdfOptions.coachName}
+          opponent={pdfOptions.opponent}
+          date={pdfOptions.date}
+          showFieldingPositions={pdfOptions.showFieldingPositions}
+        />
+      </div>
+
+      {/* PDF Customization Modal */}
+      <PDFCustomizationModal
+        isOpen={showPDFCustomization}
+        onClose={() => setShowPDFCustomization(false)}
+        onExport={handlePDFCustomizationComplete}
+        teamName={teamInfo?.name || 'My Team'}
+      />
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewModal
+        isOpen={showPDFPreview}
+        onClose={() => setShowPDFPreview(false)}
+        onBack={handleBackToCustomization}
+        onExport={handlePDFPreviewExport}
+        battingOrder={battingOrder}
+        teamInfo={teamInfo}
+        pdfOptions={pdfOptions}
+        playerPositions={playerPositions}
       />
     </div>
   );

@@ -45,6 +45,7 @@ export interface Player {
   xbh?: number;
   hr?: number;
   tb?: number;
+  lob?: number;
   // Rate-based stats (calculated from raw counts)
   hr_rate?: number; // HR/AB
   xbh_rate?: number; // XBH/AB

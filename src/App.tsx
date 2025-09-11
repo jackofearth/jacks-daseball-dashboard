@@ -299,6 +299,7 @@ function App() {
               settings={settings}
               onSettingsChange={setSettings}
               onClearAllPlayers={handleClearAllPlayers}
+              teamInfo={teamInfo}
             />
           </>
         )}
