@@ -1,4 +1,21 @@
 import React, { useState } from 'react';
+import {
+  Modal,
+  Title,
+  Text,
+  TextInput,
+  Button,
+  Group,
+  Stack,
+  Paper,
+  ColorSwatch,
+  Grid,
+  FileInput,
+  Image,
+  Center,
+  Box
+} from '@mantine/core';
+import { IconUpload, IconPalette } from '@tabler/icons-react';
 import { TeamInfo, ThemeSettings } from './StorageService';
 
 interface ThemeCustomizerProps {
@@ -7,6 +24,7 @@ interface ThemeCustomizerProps {
   onTeamInfoChange: (teamInfo: TeamInfo) => void;
   onThemeChange: (theme: ThemeSettings) => void;
   onClose: () => void;
+  isOpen: boolean;
 }
 
 const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
@@ -14,7 +32,8 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
   themeSettings,
   onTeamInfoChange,
   onThemeChange,
-  onClose
+  onClose,
+  isOpen
 }) => {
   const [formData, setFormData] = useState({
     teamName: teamInfo.name || '',
@@ -71,8 +90,7 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
     }));
   };
 
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleLogoUpload = (file: File | null) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -128,329 +146,202 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: '8px',
-        padding: '2rem',
-        maxWidth: '500px',
-        width: '90%',
-        maxHeight: '90vh',
-        overflow: 'auto',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ margin: 0, color: '#333' }}>🎨 Customize Theme</h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '1.5rem',
-              cursor: 'pointer',
-              color: '#666'
-            }}
-          >
-            ×
-          </button>
-        </div>
+    <Modal
+      opened={isOpen}
+      onClose={onClose}
+      title={
+        <Group gap="sm">
+          <IconPalette size={20} />
+          <Text fw={600}>Customize Theme</Text>
+        </Group>
+      }
+      size="lg"
+      centered
+    >
+      <Stack gap="xl">
 
         {/* Team Information */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ margin: '0 0 1rem 0', color: '#555' }}>Team Information</h3>
-          
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Team Name:
-            </label>
-            <input
-              type="text"
+        <Paper p="md" withBorder>
+          <Title order={3} mb="md">Team Information</Title>
+          <Stack gap="md">
+            <TextInput
+              label="Team Name"
+              placeholder="Enter team name"
               value={formData.teamName}
               onChange={(e) => handleInputChange('teamName', e.target.value)}
-              placeholder="Enter team name"
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '1rem'
-              }}
             />
-          </div>
-
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Location:
-            </label>
-            <input
-              type="text"
+            <TextInput
+              label="Location"
+              placeholder="Enter city/state"
               value={formData.location}
               onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="Enter city/state"
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '1rem'
-              }}
             />
-          </div>
-        </div>
+          </Stack>
+        </Paper>
 
         {/* Logo Section */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ margin: '0 0 1rem 0', color: '#555' }}>Team Logo</h3>
-          <p style={{ margin: '0 0 1rem 0', color: '#666', fontSize: '0.9rem' }}>
-            Upload your team logo (PNG, JPG, or SVG recommended).
-          </p>
-          
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Upload Logo:
-            </label>
-            <input
-              type="file"
+        <Paper p="md" withBorder>
+          <Title order={3} mb="md">Team Logo</Title>
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">
+              Upload your team logo (PNG, JPG, or SVG recommended).
+            </Text>
+            
+            <FileInput
+              label="Upload Logo"
+              placeholder="Choose file"
               accept="image/*"
               onChange={handleLogoUpload}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '0.9rem'
-              }}
+              leftSection={<IconUpload size={16} />}
             />
-          </div>
 
-          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#555' }}>Logo Preview:</h4>
-            {logoPreview ? (
-              <img
-                src={logoPreview}
-                alt="Logo preview"
-                style={{
-                  maxWidth: '200px',
-                  maxHeight: '200px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  padding: '0.5rem',
-                  background: 'white',
-                  objectFit: 'contain'
-                }}
-              />
-            ) : (
-              <div style={{
-                width: '200px',
-                height: '200px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                padding: '0.5rem',
-                background: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '4rem',
-                color: '#666'
-              }}>
-                ⚾
-              </div>
-            )}
-          </div>
-        </div>
+            <Box>
+              <Text fw={500} mb="sm">Logo Preview:</Text>
+              <Center>
+                {logoPreview ? (
+                  <Image
+                    src={logoPreview}
+                    alt="Logo preview"
+                    w={200}
+                    h={200}
+                    fit="contain"
+                    style={{ border: '1px solid var(--mantine-color-gray-3)', borderRadius: '4px' }}
+                  />
+                ) : (
+                  <Center
+                    w={200}
+                    h={200}
+                    style={{ 
+                      border: '1px solid var(--mantine-color-gray-3)', 
+                      borderRadius: '4px',
+                      background: 'var(--mantine-color-gray-1)'
+                    }}
+                  >
+                    <Text size="4xl">⚾</Text>
+                  </Center>
+                )}
+              </Center>
+            </Box>
+          </Stack>
+        </Paper>
 
         {/* Color Scheme Selection */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ margin: '0 0 1rem 0', color: '#555' }}>Color Scheme</h3>
-          <p style={{ margin: '0 0 1rem 0', color: '#666', fontSize: '0.9rem' }}>
+        <Paper p="md" withBorder>
+          <Title order={3} mb="md">Color Scheme</Title>
+          <Text size="sm" c="dimmed" mb="lg">
             Choose a predefined scheme or create your own.
-          </p>
+          </Text>
           
           {/* Predefined Schemes */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', color: '#555', fontSize: '1rem' }}>Predefined Schemes</h4>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(2, 1fr)', 
-              gap: '1rem' 
-            }}>
+          <Box mb="xl">
+            <Title order={4} mb="md">Predefined Schemes</Title>
+            <Grid>
               {Object.entries(colorSchemes).map(([key, colors]) => (
-                <div
-                  key={key}
-                  onClick={() => setSelectedColorScheme(key)}
-                  style={{
-                    border: selectedColorScheme === key ? '3px solid #333' : '2px solid #ddd',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    background: 'white',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    gap: '0.5rem', 
-                    marginBottom: '0.5rem' 
-                  }}>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: colors.primary
-                    }}></div>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: colors.secondary
-                    }}></div>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: colors.accent
-                    }}></div>
-                  </div>
-                  <div style={{ 
-                    fontSize: '0.8rem', 
-                    fontWeight: 'bold', 
-                    textTransform: 'capitalize',
-                    color: selectedColorScheme === key ? '#333' : '#666'
-                  }}>
-                    {key}
-                  </div>
-                </div>
+                <Grid.Col key={key} span={6}>
+                  <Paper
+                    p="md"
+                    withBorder
+                    style={{
+                      cursor: 'pointer',
+                      border: selectedColorScheme === key ? '3px solid var(--mantine-color-blue-6)' : '2px solid var(--mantine-color-gray-3)',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onClick={() => setSelectedColorScheme(key)}
+                  >
+                    <Group justify="center" mb="sm">
+                      <ColorSwatch color={colors.primary} size={20} />
+                      <ColorSwatch color={colors.secondary} size={20} />
+                      <ColorSwatch color={colors.accent} size={20} />
+                    </Group>
+                    <Text 
+                      size="sm" 
+                      fw={500} 
+                      ta="center" 
+                      tt="capitalize"
+                      c={selectedColorScheme === key ? 'blue' : 'dimmed'}
+                    >
+                      {key}
+                    </Text>
+                  </Paper>
+                </Grid.Col>
               ))}
-            </div>
-          </div>
+            </Grid>
+          </Box>
 
           {/* Custom Colors */}
-          <div>
-            <h4 style={{ margin: '0 0 0.75rem 0', color: '#555', fontSize: '1rem' }}>Custom Colors</h4>
-            <div style={{
-              border: selectedColorScheme === 'custom' ? '3px solid #333' : '2px solid #ddd',
-              borderRadius: '8px',
-              padding: '1rem',
-              background: 'white'
-            }}>
-              <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                    Primary Color: <span style={{ color: customColors.primary, fontWeight: 'normal' }}>({getColorName(customColors.primary)})</span>
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxWidth: '200px' }}>
+          <Box>
+            <Title order={4} mb="md">Custom Colors</Title>
+            <Paper
+              p="md"
+              withBorder
+              style={{
+                border: selectedColorScheme === 'custom' ? '3px solid var(--mantine-color-blue-6)' : '2px solid var(--mantine-color-gray-3)'
+              }}
+            >
+              <Grid>
+                <Grid.Col span={6}>
+                  <Text fw={500} mb="sm">
+                    Primary Color: <Text component="span" c={customColors.primary}>({getColorName(customColors.primary)})</Text>
+                  </Text>
+                  <Group gap="xs" wrap="wrap">
                     {basicColors.map(color => (
-                      <div
+                      <ColorSwatch
                         key={color}
+                        color={color}
+                        size={24}
+                        style={{ cursor: 'pointer' }}
                         onClick={() => handleCustomColorChange('primary', color)}
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: color,
-                          cursor: 'pointer',
-                          border: customColors.primary === color ? '3px solid #333' : '2px solid #ddd',
-                          transition: 'all 0.2s ease'
-                        }}
-                        title={color}
                       />
                     ))}
-                  </div>
-                </div>
+                  </Group>
+                </Grid.Col>
                 
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', fontWeight: 'bold' }}>
-                    Secondary Color: <span style={{ color: customColors.secondary, fontWeight: 'normal' }}>({getColorName(customColors.secondary)})</span>
-                  </label>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', maxWidth: '200px' }}>
+                <Grid.Col span={6}>
+                  <Text fw={500} mb="sm">
+                    Secondary Color: <Text component="span" c={customColors.secondary}>({getColorName(customColors.secondary)})</Text>
+                  </Text>
+                  <Group gap="xs" wrap="wrap">
                     {basicColors.map(color => (
-                      <div
+                      <ColorSwatch
                         key={color}
+                        color={color}
+                        size={24}
+                        style={{ cursor: 'pointer' }}
                         onClick={() => handleCustomColorChange('secondary', color)}
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: color,
-                          cursor: 'pointer',
-                          border: customColors.secondary === color ? '3px solid #333' : '2px solid #ddd',
-                          transition: 'all 0.2s ease'
-                        }}
-                        title={color}
                       />
                     ))}
-                  </div>
-                </div>
-              </div>
-              
-            </div>
-          </div>
-        </div>
+                  </Group>
+                </Grid.Col>
+              </Grid>
+            </Paper>
+          </Box>
+        </Paper>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'space-between' }}>
-          <button
+        <Group justify="space-between">
+          <Button
+            variant="outline"
+            color="red"
             onClick={handleReset}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: '1px solid #dc3545',
-              borderRadius: '4px',
-              background: 'white',
-              color: '#dc3545',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: 'bold'
-            }}
           >
             Reset Customization
-          </button>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button
+          </Button>
+          <Group>
+            <Button
+              variant="outline"
               onClick={onClose}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                background: 'white',
-                color: '#666',
-                cursor: 'pointer',
-                fontSize: '1rem'
-              }}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSave}
-              style={{
-                padding: '0.75rem 1.5rem',
-                border: 'none',
-                borderRadius: '4px',
-                background: '#007bff',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '1rem',
-                fontWeight: 'bold'
-              }}
             >
               Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+            </Button>
+          </Group>
+        </Group>
+      </Stack>
+    </Modal>
   );
 };
 

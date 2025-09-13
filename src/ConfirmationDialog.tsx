@@ -1,4 +1,6 @@
 import React from 'react';
+import { Modal, Text, Group, Button, Stack, ThemeIcon } from '@mantine/core';
+import { IconAlertTriangle, IconInfoCircle, IconX } from '@tabler/icons-react';
 
 interface ConfirmationDialogProps {
   isOpen: boolean;
@@ -21,137 +23,67 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onCancel,
   type = 'warning'
 }) => {
-  if (!isOpen) return null;
-
-  const getTypeStyles = () => {
+  const getTypeConfig = () => {
     switch (type) {
       case 'danger':
         return {
-          confirmBg: '#dc3545',
-          confirmHover: '#c82333',
-          icon: '⚠️',
-          iconColor: '#dc3545'
+          color: 'red',
+          icon: <IconX size={32} />,
+          confirmColor: 'red'
         };
       case 'info':
         return {
-          confirmBg: '#007bff',
-          confirmHover: '#0056b3',
-          icon: 'ℹ️',
-          iconColor: '#007bff'
+          color: 'blue',
+          icon: <IconInfoCircle size={32} />,
+          confirmColor: 'blue'
         };
       default: // warning
         return {
-          confirmBg: '#ffc107',
-          confirmHover: '#e0a800',
-          icon: '⚠️',
-          iconColor: '#ffc107'
+          color: 'yellow',
+          icon: <IconAlertTriangle size={32} />,
+          confirmColor: 'yellow'
         };
     }
   };
 
-  const typeStyles = getTypeStyles();
+  const typeConfig = getTypeConfig();
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '2rem',
-        maxWidth: '400px',
-        width: '90%',
-        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
-        textAlign: 'center'
-      }}>
-        <div style={{
-          fontSize: '3rem',
-          marginBottom: '1rem',
-          color: typeStyles.iconColor
-        }}>
-          {typeStyles.icon}
-        </div>
+    <Modal
+      opened={isOpen}
+      onClose={onCancel}
+      title={title}
+      centered
+      size="sm"
+    >
+      <Stack gap="md" align="center">
+        <ThemeIcon
+          size={64}
+          radius="xl"
+          color={typeConfig.color}
+          variant="light"
+        >
+          {typeConfig.icon}
+        </ThemeIcon>
         
-        <h3 style={{
-          margin: '0 0 1rem 0',
-          fontSize: '1.25rem',
-          fontWeight: 'bold',
-          color: '#333'
-        }}>
-          {title}
-        </h3>
-        
-        <p style={{
-          margin: '0 0 2rem 0',
-          fontSize: '1rem',
-          color: '#666',
-          lineHeight: '1.5'
-        }}>
+        <Text size="sm" c="dimmed" ta="center">
           {message}
-        </p>
+        </Text>
         
-        <div style={{
-          display: 'flex',
-          gap: '1rem',
-          justifyContent: 'center'
-        }}>
-          <button
-            onClick={onCancel}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              background: 'white',
-              color: '#333',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#f8f9fa';
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = 'white';
-            }}
-          >
+        <Group justify="center" gap="sm" mt="md">
+          <Button variant="light" onClick={onCancel} radius="xl">
             {cancelText}
-          </button>
-          
-          <button
+          </Button>
+          <Button 
+            color={typeConfig.confirmColor}
             onClick={onConfirm}
-            style={{
-              padding: '0.75rem 1.5rem',
-              border: 'none',
-              borderRadius: '4px',
-              background: typeStyles.confirmBg,
-              color: type === 'warning' ? 'black' : 'white',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: '500',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = typeStyles.confirmHover;
-            }}
-            onMouseLeave={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = typeStyles.confirmBg;
-            }}
+            radius="xl"
           >
             {confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
   );
 };
 

@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Container, Loader, Center, Text, Alert, Stack } from '@mantine/core';
+import { IconAlertCircle } from '@tabler/icons-react';
 import './App.css';
-import { PlayerManager } from './PlayerManager';
+import { PlayerManager } from './PlayerManagerMantine';
 import { Player, ThemeSettings } from './StorageService';
-import { DraggableBattingOrder } from './DraggableBattingOrder';
+import { DraggableBattingOrder } from './DraggableBattingOrderMantine';
 import StorageService, { TeamData, TeamInfo, CSVFile, BattingOrderConfig, UserSettings } from './StorageService';
 import ThemeCustomizer from './ThemeCustomizer';
 import ConfirmationDialog from './ConfirmationDialog';
 import HelpPage from './HelpPage';
+import { AppLayout } from './AppLayout';
 
 function App() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -19,8 +22,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
   const [showClearPlayersDialog, setShowClearPlayersDialog] = useState(false);
+  const [activeSection, setActiveSection] = useState<'players' | 'lineup' | 'help'>('players');
 
   // Auto-load data on app start
   useEffect(() => {
@@ -109,6 +112,24 @@ function App() {
     setShowClearPlayersDialog(true);
   };
 
+  const handleNavigateToHelp = () => {
+    setActiveSection('help');
+    // Add a small delay to ensure the help page renders before scrolling
+    setTimeout(() => {
+      const strategiesSection = document.getElementById('strategies');
+      if (strategiesSection) {
+        // Scroll to slightly above the strategies section to account for header
+        const elementPosition = strategiesSection.offsetTop;
+        const offsetPosition = elementPosition - 100; // 100px above the section
+        
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
+  };
+
   const confirmClearAllPlayers = () => {
     setPlayers([]);
     setBattingOrder([]);
@@ -116,9 +137,7 @@ function App() {
     setShowClearPlayersDialog(false);
   };
 
-  const getStorageInfo = () => {
-    return StorageService.getStorageInfo();
-  };
+
 
   // Apply theme colors as CSS custom properties
   useEffect(() => {
@@ -133,202 +152,87 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/help" element={<HelpPage />} />
         <Route path="/" element={
-          <div className="App">
-      <header style={{
-        background: `linear-gradient(135deg, ${settings.customTheme?.colors?.primary || '#007bff'} 0%, ${settings.customTheme?.colors?.secondary || '#6c757d'} 100%)`,
-        padding: '2rem',
-        color: 'white',
-        position: 'relative'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          {/* Left side - Logo */}
-          <div style={{ flex: '0 0 auto' }}>
-            {teamInfo.logo ? (
-              <img
-                src={teamInfo.logo}
-                alt={`${teamInfo.name} logo`}
-                style={{
-                  maxWidth: '120px',
-                  maxHeight: '80px',
-                  objectFit: 'contain'
-                }}
-              />
-            ) : showThemeCustomizer ? (
-              <div style={{
-                fontSize: '3rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '120px',
-                height: '80px'
-              }}>
-                ⚾
-              </div>
-            ) : null}
-          </div>
-
-          {/* Center - Team name with customize button */}
-          <div style={{ flex: '1', textAlign: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-              <h1 style={{ margin: 0, fontSize: '2.5rem' }}>
-                {teamInfo.name || 'Baseball Dashboard'}
-              </h1>
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <button
-                  onClick={() => setShowThemeCustomizer(true)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'white',
-                    padding: '0.5rem',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={() => {
-                    setShowTooltip(true);
-                  }}
-                  onMouseLeave={() => {
-                    setShowTooltip(false);
-                  }}
+          <AppLayout 
+            teamInfo={teamInfo}
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+            onCustomizeTheme={() => setShowThemeCustomizer(true)}
+          >
+            <Container size="xl">
+              {isLoading ? (
+                <Center h={400}>
+                  <Stack align="center" gap="md">
+                    <Loader size="lg" />
+                    <Text size="lg" fw={500}>Loading your team data...</Text>
+                    <Text c="dimmed">Please wait while we restore your saved data.</Text>
+                  </Stack>
+                </Center>
+              ) : saveStatus === 'error' ? (
+                <Alert 
+                  icon={<IconAlertCircle size={16} />} 
+                  title="Error" 
+                  color="red"
+                  mb="md"
                 >
-                  ✏️
-                </button>
-                {showTooltip && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '100%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'rgba(0, 0, 0, 0.8)',
-                    color: 'white',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.75rem',
-                    whiteSpace: 'nowrap',
-                    marginBottom: '0.25rem',
-                    zIndex: 1000
-                  }}>
-                    Customise
-                  </div>
-                )}
-              </div>
-            </div>
-            {teamInfo.location && (
-              <p style={{ margin: '0.25rem 0 0 0', fontSize: '1.1rem', opacity: 0.9 }}>
-                {teamInfo.location}
-              </p>
-            )}
-          </div>
+                  Failed to load team data. Please refresh the page.
+                </Alert>
+              ) : (
+                <>
+                  {activeSection === 'players' && (
+                    <PlayerManager 
+                      players={players}
+                      onPlayersChange={handlePlayersChange}
+                      csvFiles={csvFiles}
+                      onCSVImport={handleCSVImport}
+                      onClearAllPlayers={handleClearAllPlayers}
+                    />
+                  )}
+                  
+                  {activeSection === 'lineup' && (
+                    <DraggableBattingOrder 
+                      players={players} 
+                      battingOrder={battingOrder}
+                      onBattingOrderChange={handleBattingOrderChange}
+                      savedBattingOrders={savedBattingOrders}
+                      onSaveBattingOrder={(config) => setSavedBattingOrders(prev => [...prev, config])}
+                      settings={settings}
+                      onSettingsChange={setSettings}
+                      onClearAllPlayers={handleClearAllPlayers}
+                      teamInfo={teamInfo}
+                      onNavigateToHelp={handleNavigateToHelp}
+                    />
+                  )}
+                  
+                  {activeSection === 'help' && (
+                    <HelpPage />
+                  )}
+                </>
+              )}
+            </Container>
 
-          {/* Right side - Help button */}
-          <div style={{ flex: '0 0 auto' }}>
-            <a
-              href="/help"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: 'white',
-                textDecoration: 'none',
-                padding: '0.5rem 1rem',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '4px',
-                fontSize: '0.9rem',
-                transition: 'all 0.2s ease',
-                background: 'rgba(255, 255, 255, 0.1)'
-              }}
-              onMouseEnter={(e) => {
-                (e.target as HTMLAnchorElement).style.background = 'rgba(255, 255, 255, 0.2)';
-                (e.target as HTMLAnchorElement).style.borderColor = 'rgba(255, 255, 255, 0.5)';
-              }}
-              onMouseLeave={(e) => {
-                (e.target as HTMLAnchorElement).style.background = 'rgba(255, 255, 255, 0.1)';
-                (e.target as HTMLAnchorElement).style.borderColor = 'rgba(255, 255, 255, 0.3)';
-              }}
-            >
-              Help
-            </a>
-          </div>
-        </div>
-
-      </header>
-      
-      {/* Tab Navigation */}
-      <nav style={{
-        background: '#f8f9fa',
-        padding: '1rem 2rem',
-        borderBottom: '1px solid #dee2e6',
-        display: 'flex',
-        justifyContent: 'flex-end',
-        alignItems: 'center'
-      }}>
-
-      </nav>
-      
-      <main style={{ 
-        padding: '2rem',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        minHeight: 'calc(100vh - 200px)'
-      }}>
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>Loading your team data...</div>
-            <div style={{ color: '#666' }}>Please wait while we restore your saved data.</div>
-          </div>
-        ) : (
-          <>
-            <PlayerManager 
-              players={players}
-              onPlayersChange={handlePlayersChange}
-              csvFiles={csvFiles}
-              onCSVImport={handleCSVImport}
-            />
-            
-            <DraggableBattingOrder 
-              players={players} 
-              battingOrder={battingOrder}
-              onBattingOrderChange={handleBattingOrderChange}
-              savedBattingOrders={savedBattingOrders}
-              onSaveBattingOrder={(config) => setSavedBattingOrders(prev => [...prev, config])}
-              settings={settings}
-              onSettingsChange={setSettings}
-              onClearAllPlayers={handleClearAllPlayers}
+            {/* Theme Customizer Modal */}
+            <ThemeCustomizer
               teamInfo={teamInfo}
+              themeSettings={settings.customTheme || { colors: { primary: '#007bff', secondary: '#6c757d', accent: '#28a745' } }}
+              onTeamInfoChange={handleTeamInfoChange}
+              onThemeChange={handleThemeChange}
+              onClose={() => setShowThemeCustomizer(false)}
+              isOpen={showThemeCustomizer}
             />
-          </>
-        )}
-      </main>
 
-      {/* Theme Customizer Modal */}
-      {showThemeCustomizer && (
-        <ThemeCustomizer
-          teamInfo={teamInfo}
-          themeSettings={settings.customTheme || { colors: { primary: '#007bff', secondary: '#6c757d', accent: '#28a745' } }}
-          onTeamInfoChange={handleTeamInfoChange}
-          onThemeChange={handleThemeChange}
-          onClose={() => setShowThemeCustomizer(false)}
-        />
-      )}
-
-      {/* Confirmation Dialogs */}
-      <ConfirmationDialog
-        isOpen={showClearPlayersDialog}
-        title="Clear All Players"
-        message="Are you sure you want to clear all players? This will also clear your batting order and imported CSV files."
-        confirmText="Clear Players"
-        cancelText="Cancel"
-        type="warning"
-        onConfirm={confirmClearAllPlayers}
-        onCancel={() => setShowClearPlayersDialog(false)}
-      />
-
-          </div>
+            {/* Confirmation Dialogs */}
+            <ConfirmationDialog
+              isOpen={showClearPlayersDialog}
+              title="Clear All Players"
+              message="Are you sure you want to clear all players? This will also clear your batting order and imported CSV files."
+              confirmText="Clear Players"
+              cancelText="Cancel"
+              type="warning"
+              onConfirm={confirmClearAllPlayers}
+              onCancel={() => setShowClearPlayersDialog(false)}
+            />
+          </AppLayout>
         } />
       </Routes>
     </Router>

@@ -1,15 +1,23 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { ModalsProvider } from '@mantine/modals';
+import { Notifications } from '@mantine/notifications';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+
+// Import Mantine styles
+import '@mantine/core/styles.css';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <App />
+    <ModalsProvider>
+      <Notifications />
+      <App />
+    </ModalsProvider>
   </React.StrictMode>
 );
 

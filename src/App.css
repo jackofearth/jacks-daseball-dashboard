@@ -16,6 +16,47 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+/* Fielding position select placeholder font weight - Comprehensive targeting */
+/* Target the input element when it has placeholder text */
+.fielding-position-select[data-placeholder] {
+  font-weight: 500 !important;
+}
+
+/* Target the input element when it's in placeholder state */
+.fielding-position-select:not([data-value]):not([value]) {
+  font-weight: 500 !important;
+}
+
+/* Target the input element when it contains placeholder text */
+.fielding-position-select[placeholder="Position"] {
+  font-weight: 500 !important;
+}
+
+/* Target the input element directly */
+.fielding-position-select {
+  font-weight: 500 !important;
+}
+
+/* Override any existing font-weight when placeholder is shown */
+.fielding-position-select[data-placeholder="Position"] {
+  font-weight: 500 !important;
+}
+
+/* Target the specific Mantine classes */
+.mantine-Select-input.fielding-position-select {
+  font-weight: 500 !important;
+}
+
+/* Target the input when it's empty (placeholder state) */
+.fielding-position-select:empty {
+  font-weight: 500 !important;
+}
+
+/* Target the input when it has no value */
+.fielding-position-select:not([value]):not([data-value]) {
+  font-weight: 500 !important;
+}
+
 .App {
   text-align: center;
 }
