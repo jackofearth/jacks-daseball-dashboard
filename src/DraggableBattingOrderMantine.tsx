@@ -352,7 +352,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 }) => {
   const [algorithm, setAlgorithm] = useState<'traditional' | 'situational'>('traditional');
   const [showFieldingDropdowns, setShowFieldingDropdowns] = useState(false);
-  const [hideConfidenceScore, setHideConfidenceScore] = useState(false);
+  const [hideConfidenceScore, setHideConfidenceScore] = useState(true);
   const [showStrategyInfo, setShowStrategyInfo] = useState(false);
   const [showPDFCustomization, setShowPDFCustomization] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
@@ -774,9 +774,6 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         <Group justify="space-between" align="center">
           <div>
             <Title order={3}>Batting Order</Title>
-            <Text size="sm" c="dimmed">
-              {battingOrder.length} players in batting order
-            </Text>
           </div>
           <Group>
             <Button
