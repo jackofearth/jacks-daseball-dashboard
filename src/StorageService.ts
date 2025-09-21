@@ -35,7 +35,10 @@ export interface Player {
   slg: number;
   ops: number;
   // Advanced stats
+  ab?: number;
+  pa?: number;
   sb?: number;
+  cs?: number;
   sb_percent?: number;
   bb_k?: number;
   contact_percent?: number;

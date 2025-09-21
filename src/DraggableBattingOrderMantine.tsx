@@ -43,7 +43,6 @@ import {
   IconDownload,
   IconRefresh,
   IconChartBar,
-  IconInfoCircle,
   IconX,
   IconCheck,
   IconBolt,
@@ -53,6 +52,7 @@ import { Player, BattingOrderConfig, UserSettings, TeamInfo } from './StorageSer
 import StrategyInfoModal from './StrategyInfoModal';
 import PDFCustomizationModal, { PDFExportOptions } from './PDFCustomizationModal';
 import PDFPreviewModal from './PDFPreviewModal';
+import ConfidenceInfoModal from './ConfidenceInfoModal';
 
 const getConfidenceIcon = (iconType: string) => {
   switch (iconType) {
@@ -83,7 +83,7 @@ interface DraggableBattingOrderProps {
 interface SortablePlayerCardProps {
   player: Player;
   position: number;
-  getConfidenceLevel: (ab: number) => { level: string; label: string; color: string; icon: string; penalty: number };
+  getConfidenceLevel: (pa: number) => { level: string; label: string; color: string; icon: string; penalty: number };
   onFieldingPositionChange: (playerId: string, position: string) => void;
   showFieldingDropdowns: boolean;
   getAvailablePositions: (playerId: string) => string[];
@@ -141,7 +141,7 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
                     }}
                     onMouseLeave={() => setShowTooltip(false)}
                   >
-                    AB: {player.ab || 0}
+                    PA: {player.pa || 0}
                   </Text>
                   {showTooltip && ReactDOM.createPortal(
                     <div style={{
@@ -224,7 +224,7 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const confidence = getConfidenceLevel(player.ab);
+  const confidence = getConfidenceLevel(player.pa || 0);
 
   return (
     <Card
@@ -271,7 +271,7 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
                   }}
                   onMouseLeave={() => setShowTooltip(false)}
                 >
-                  AB: {player.ab || 0}
+                  PA: {player.pa || 0}
                 </Text>
                 {showTooltip && ReactDOM.createPortal(
                   <div style={{
@@ -351,16 +351,30 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   onNavigateToHelp
 }) => {
   const [algorithm, setAlgorithm] = useState<'traditional' | 'situational'>('traditional');
-  const [showFieldingDropdowns, setShowFieldingDropdowns] = useState(false);
-  const [hideConfidenceScore, setHideConfidenceScore] = useState(true);
+  const [showFieldingDropdowns, setShowFieldingDropdowns] = useState(() => {
+    const saved = localStorage.getItem('showFieldingDropdowns');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [hideConfidenceScore, setHideConfidenceScore] = useState(() => {
+    const saved = localStorage.getItem('hideConfidenceScore');
+    return saved ? JSON.parse(saved) : true;
+  });
   const [showStrategyInfo, setShowStrategyInfo] = useState(false);
+  const [showConfidenceInfo, setShowConfidenceInfo] = useState(false);
   const [showPDFCustomization, setShowPDFCustomization] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [pdfOptions, setPdfOptions] = useState<PDFExportOptions | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [savedOrderName, setSavedOrderName] = useState('');
-  const [showStrategyTooltip, setShowStrategyTooltip] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  // Save toggle states to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('showFieldingDropdowns', JSON.stringify(showFieldingDropdowns));
+  }, [showFieldingDropdowns]);
+
+  React.useEffect(() => {
+    localStorage.setItem('hideConfidenceScore', JSON.stringify(hideConfidenceScore));
+  }, [hideConfidenceScore]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -389,10 +403,10 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     );
   };
 
-  const getConfidenceLevel = (ab: number) => {
-    if (ab >= 12) return { level: 'High', label: 'High Confidence', color: 'green', icon: 'check', penalty: 0 };
-    if (ab >= 6) return { level: 'Medium', label: 'Medium Confidence', color: 'yellow', icon: 'bolt', penalty: 0.15 };
-    if (ab >= 3) return { level: 'Low', label: 'Low Confidence', color: 'orange', icon: 'alert', penalty: 0.30 };
+  const getConfidenceLevel = (pa: number) => {
+    if (pa >= 15) return { level: 'High', label: 'High Confidence', color: 'green', icon: 'check', penalty: 0 };
+    if (pa >= 8) return { level: 'Medium', label: 'Medium Confidence', color: 'yellow', icon: 'bolt', penalty: 0.15 };
+    if (pa >= 4) return { level: 'Low', label: 'Low Confidence', color: 'orange', icon: 'alert', penalty: 0.30 };
     return { level: 'Excluded', label: 'Excluded', color: 'red', icon: 'x', penalty: 1.0 };
   };
 
@@ -418,7 +432,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     );
     
     const primaryPlayers = playersWithStats.filter(player => 
-      (player.ab || 0) >= 3
+      (player.pa || 0) >= 4
     );
     
     // If we have players with sufficient stats, use them; otherwise use all players
@@ -428,12 +442,13 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     const penalizedPlayers = playersToUse.map(applyConfidencePenalty);
     
 
-    // MLB Traditional Order Strategy - use penalized stats for ranking
+    // MLB Modern Analytics Order Strategy - use penalized stats for ranking
     const playerStats = penalizedPlayers.map(p => ({
       ...p,
       ops: p.obp + p.slg,  // On-base + Slugging (with penalty applied)
       contactScore: p.avg + p.obp,
-      speedScore: p.sb_percent || 0  // Keep as percentage like original
+      speedScore: p.sb_percent || 0,  // Keep as percentage like original
+      stolenBaseSuccess: (p.sb_percent || 0) * (Math.min((p.sb || 0) + (p.cs || 0), 10) / 10)  // Stolen base confidence weighting
     }));
 
     const order: { [key: number]: Player } = {};
@@ -448,25 +463,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       used.add(leadoffCandidates[0].id);
     }
 
-    // 2. CONTACT HITTER - Best combo of AVG + speed
-    const contactCandidates = playerStats
-      .filter(p => !used.has(p.id))
-      .sort((a, b) => (b.avg + b.speedScore) - (a.avg + a.speedScore));
-    if (contactCandidates.length > 0) {
-      order[2] = contactCandidates[0];
-      used.add(contactCandidates[0].id);
-    }
-
-    // 3. BEST HITTER - Highest OPS overall
-    const bestHitterCandidates = playerStats
-      .filter(p => !used.has(p.id))
-      .sort((a, b) => b.ops - a.ops);
-    if (bestHitterCandidates.length > 0) {
-      order[3] = bestHitterCandidates[0];
-      used.add(bestHitterCandidates[0].id);
-    }
-
-    // 4. CLEANUP - Best power (highest SLG)
+    // 4. CLEANUP - Best power (highest SLG) - Modern analytics priority #2
     const cleanupCandidates = playerStats
       .filter(p => !used.has(p.id))
       .sort((a, b) => b.slg - a.slg);
@@ -475,7 +472,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       used.add(cleanupCandidates[0].id);
     }
 
-    // 5. PROTECTION - Second best power hitter
+    // 2. ELITE HITTER - Highest remaining OPS (Modern analytics priority #3)
+    const eliteHitterCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.ops - a.ops);
+    if (eliteHitterCandidates.length > 0) {
+      order[2] = eliteHitterCandidates[0];
+      used.add(eliteHitterCandidates[0].id);
+    }
+
+    // 5. PROTECTION - Second best power hitter - Modern analytics priority #4
     const protectionCandidates = playerStats
       .filter(p => !used.has(p.id))
       .sort((a, b) => b.slg - a.slg);
@@ -484,25 +490,25 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       used.add(protectionCandidates[0].id);
     }
 
-    // 6-8. DESCENDING ORDER - By OPS
+    // 3. REMAINING TALENT - Gets remaining top talent (Modern analytics priority #5)
+    const remainingTalentCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.ops - a.ops);
+    if (remainingTalentCandidates.length > 0) {
+      order[3] = remainingTalentCandidates[0];
+      used.add(remainingTalentCandidates[0].id);
+    }
+
+    // 6-9. DESCENDING ORDER - By OPS (remaining players)
     const remainingByOPS = playerStats
       .filter(p => !used.has(p.id))
       .sort((a, b) => b.ops - a.ops);
 
-    for (let pos = 6; pos <= 8; pos++) {
+    for (let pos = 6; pos <= 9; pos++) {
       if (remainingByOPS.length > pos - 6) {
         order[pos] = remainingByOPS[pos - 6];
         used.add(remainingByOPS[pos - 6].id);
       }
-    }
-
-    // 9. PITCHER SPOT - Weakest hitter (lowest OPS)
-    const weakestCandidates = playerStats
-      .filter(p => !used.has(p.id))
-      .sort((a, b) => a.ops - b.ops);
-    if (weakestCandidates.length > 0) {
-      order[9] = weakestCandidates[0];
-      used.add(weakestCandidates[0].id);
     }
 
     // Convert to array format and map back to original players
@@ -530,7 +536,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     );
     
     const primaryPlayers = playersWithStats.filter(player => 
-      (player.ab || 0) >= 3
+      (player.pa || 0) >= 4
     );
     
     // If we have players with sufficient stats, use them; otherwise use all players
@@ -538,11 +544,22 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     
     // Apply confidence penalties to all players
     const penalizedPlayers = allPlayers.map(applyConfidencePenalty);
+    
+    // Add stolenBaseSuccess field and calculate rates for Situational Analytics
+    const playersWithStolenBaseSuccess = penalizedPlayers.map(p => ({
+      ...p,
+      stolenBaseSuccess: (p.sb_percent || 0) * (Math.min((p.sb || 0) + (p.cs || 0), 10) / 10),  // Stolen base confidence weighting
+      // Calculate rate-based stats if not already present
+      hr_rate: p.hr_rate || ((p.ab || 0) > 0 ? (p.hr || 0) / (p.ab || 1) : 0),
+      xbh_rate: p.xbh_rate || ((p.ab || 0) > 0 ? (p.xbh || 0) / (p.ab || 1) : 0),
+      two_out_rbi_rate: p.two_out_rbi_rate || ((p.ab_risp || 0) > 0 ? (p.two_out_rbi || 0) / (p.ab_risp || 1) : 0)
+    }));
+    
     const optimalOrder: Player[] = new Array(9).fill(null);
     const usedPlayers = new Set<string>();
 
     const findBestPlayer = (criteria: (player: Player) => number, excludeUsed = true) => {
-      return penalizedPlayers
+      return playersWithStolenBaseSuccess
         .filter(player => !excludeUsed || !usedPlayers.has(player.id))
         .sort((a, b) => criteria(b) - criteria(a))[0];
     };
@@ -555,14 +572,14 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     };
 
     // Helper function to evaluate players with situational fallbacks
-    const evaluatePlayer = (player: Player, position: number) => {
+    const evaluatePlayer = (player: any, position: number) => {
       const hasSituationalData = (player.ab_risp || 0) >= 2;
       const situationalConfidence = (player.ab_risp || 0) >= 5 ? 1.0 : (player.ab_risp || 0) >= 3 ? 0.7 : 0.3;
       
       switch (position) {
         case 0: // Lead-off (1st): Speed + OBP
           return player.obp * 0.4 + 
-                 (player.sb_percent || 0) * 0.3 + 
+                 (player.stolenBaseSuccess || 0) * 0.3 + 
                  (player.contact_percent || 0) * 0.2 + 
                  player.avg * 0.1;
                  
@@ -662,11 +679,11 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     onBattingOrderChange(finalOrder);
   };
 
-  // Get basic stats penalty (based on total AB)
-  const getBasicStatsPenalty = (ab: number) => {
-    if (ab >= 12) return 0;      // Full confidence
-    if (ab >= 6) return 0.15;    // Medium confidence  
-    if (ab >= 3) return 0.30;    // Low confidence
+  // Get basic stats penalty (based on total PA)
+  const getBasicStatsPenalty = (pa: number) => {
+    if (pa >= 15) return 0;      // Full confidence
+    if (pa >= 8) return 0.15;    // Medium confidence  
+    if (pa >= 4) return 0.30;    // Low confidence
     return 1;                    // Excluded
   };
 
@@ -680,7 +697,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
   // Helper function to apply confidence penalty
   const applyConfidencePenalty = (player: Player) => {
-    const basicPenalty = getBasicStatsPenalty(player.ab || 0);
+    const basicPenalty = getBasicStatsPenalty(player.pa || 0);
     const situationalPenalty = getSituationalStatsPenalty(player.ab_risp || 0);
     
     return {
@@ -769,48 +786,40 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
   return (
     <Stack gap="md">
-      {/* Header */}
-      <Paper p="md" withBorder>
-        <Group justify="space-between" align="center">
-          <div>
-            <Title order={3}>Batting Order</Title>
-          </div>
-          <Group>
-            <Button
-              leftSection={<IconDownload size={16} />}
-              onClick={exportToPDF}
-              color="blue"
-              radius="xl"
-            >
-              Export PDF
-            </Button>
-          </Group>
-        </Group>
-      </Paper>
 
       {/* Algorithm Selection */}
       <Paper p="md" withBorder>
         <Stack gap="md">
+          <Group justify="center">
+            <Title order={2}>Strategy</Title>
+          </Group>
           <Group justify="space-between" align="center">
-            <Title order={4}>Strategy</Title>
-            <Group>
+            <Group gap="md" justify="center" style={{ flex: 1 }}>
               <Button
-                variant={algorithm === 'traditional' ? 'filled' : 'light'}
-                color={algorithm === 'traditional' ? 'blue' : 'red'}
+                variant="filled"
+                color={algorithm === 'traditional' ? 'blue' : 'gray'}
                 onClick={() => setAlgorithm('traditional')}
                 size="md"
                 radius="xl"
                 leftSection={<img src="/mlblogo.png" alt="MLB" width={32} height={24} style={{ objectFit: 'contain' }} />}
+                style={{
+                  filter: algorithm === 'traditional' ? 'none' : 'grayscale(100%)',
+                  opacity: algorithm === 'traditional' ? 1 : 0.6
+                }}
               >
-                Traditional MLB
+                Modern Baseball Consensus
               </Button>
               <Button
-                variant={algorithm === 'situational' ? 'filled' : 'light'}
-                color={algorithm === 'situational' ? 'blue' : 'red'}
+                variant="filled"
+                color={algorithm === 'situational' ? 'red' : 'gray'}
                 onClick={() => setAlgorithm('situational')}
                 size="md"
                 radius="xl"
                 leftSection={<img src="/situational2.jpg" alt="Situational" width={32} height={24} style={{ objectFit: 'contain' }} />}
+                style={{
+                  filter: algorithm === 'situational' ? 'none' : 'grayscale(100%)',
+                  opacity: algorithm === 'situational' ? 1 : 0.6
+                }}
               >
                 Situational Analytics
               </Button>
@@ -819,19 +828,19 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 color="gray"
                 onClick={() => setShowStrategyInfo(true)}
                 size="lg"
-                onMouseEnter={(e: React.MouseEvent) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setTooltipPosition({
-                    x: rect.left + rect.width / 2,
-                    y: rect.top - 10
-                  });
-                  setShowStrategyTooltip(true);
-                }}
-                onMouseLeave={() => setShowStrategyTooltip(false)}
               >
-                <IconInfoCircle size={20} />
+                ?
               </ActionIcon>
             </Group>
+            <Button
+              leftSection={<IconDownload size={14} />}
+              onClick={exportToPDF}
+              color="green"
+              radius="xl"
+              size="sm"
+            >
+              Export PDF
+            </Button>
           </Group>
         </Stack>
       </Paper>
@@ -868,11 +877,21 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
               checked={showFieldingDropdowns}
               onChange={(event) => setShowFieldingDropdowns(event.currentTarget.checked)}
             />
-            <Switch
-              label="Show Confidence Scores"
-              checked={!hideConfidenceScore}
-              onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
-            />
+            <Group gap="xs">
+              <Switch
+                label="Show Confidence Scores"
+                checked={!hideConfidenceScore}
+                onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
+              />
+              <ActionIcon
+                variant="filled"
+                color="gray"
+                onClick={() => setShowConfidenceInfo(true)}
+                size="sm"
+              >
+                ?
+              </ActionIcon>
+            </Group>
           </Group>
         </Group>
 
@@ -934,7 +953,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 key={player.id}
                 player={player}
                 isInOrder={battingOrder.find(p => p.id === player.id)}
-                confidence={getConfidenceLevel(player.ab)}
+                confidence={getConfidenceLevel(player.pa || 0)}
                 onAddToOrder={() => addToOrder(player)}
                 hideConfidenceScore={hideConfidenceScore}
               />
@@ -990,6 +1009,11 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         onNavigateToHelp={onNavigateToHelp}
       />
 
+      <ConfidenceInfoModal
+        isOpen={showConfidenceInfo}
+        onClose={() => setShowConfidenceInfo(false)}
+      />
+
 
       <PDFCustomizationModal
         isOpen={showPDFCustomization}
@@ -1040,30 +1064,6 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         </Stack>
       </Modal>
 
-      {/* Tooltips */}
-      {showStrategyTooltip && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed',
-          left: tooltipPosition.x,
-          top: tooltipPosition.y,
-          transform: 'translateX(-50%)',
-          background: 'rgba(0, 0, 0, 0.9)',
-          color: 'white',
-          padding: '0.4rem 0.6rem',
-          borderRadius: '4px',
-          fontSize: '0.75rem',
-          whiteSpace: 'nowrap',
-          zIndex: 10000,
-          pointerEvents: 'none',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.4)',
-          fontFamily: 'Arial, sans-serif',
-          maxWidth: '180px',
-          textAlign: 'center'
-        }}>
-          Learn about the strategies
-        </div>,
-        document.body
-      )}
 
 
     </Stack>

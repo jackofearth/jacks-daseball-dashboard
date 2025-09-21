@@ -1,7 +1,7 @@
 # Baseball Manager Dashboard - Algorithm Documentation
 
 *Auto-generated on: 2025-09-21*
-*Last updated: 2025-09-21 (2e059d6)*
+*Last updated: 2025-09-21 (28caec9)*
 
 ## Overview
 
@@ -10,7 +10,7 @@ This document provides comprehensive technical specifications for the two battin
 ## Algorithm 1: Traditional Baseball Strategy
 
 **Function:** `generateMLBOrder()`  
-**File:** `src/DraggableBattingOrderMantine.tsx` (lines 409-520)  
+**File:** `src/DraggableBattingOrderMantine.tsx` (lines 423-526)  
 **Strategy:** Simple, proven approach used at the highest levels of baseball
 
 ### Core Logic
@@ -22,12 +22,11 @@ The Traditional Baseball algorithm prioritizes fundamental baseball principles w
 | Position | Criteria | Weighting | Description |
 |----------|----------|-----------|-------------|
 | **1st (Leadoff)** | Highest OBP | 100% OBP | See implementation for details |
-| **2nd (Contact)** | AVG + Speed | 50% AVG + 50% SB% | See implementation for details |
-| **3rd (Best Hitter)** | Highest OPS | 100% OPS | See implementation for details |
+| **2nd (Elite Hitter)** | Highest remaining OPS | 100% OPS | See implementation for details |
+| **3rd (Remaining Talent)** | Gets remaining top talent | 100% OPS | See implementation for details |
 | **4th (Cleanup)** | Highest SLG | 100% SLG | See implementation for details |
 | **5th (Protection)** | Second best SLG | 100% SLG | See implementation for details |
-| **6th-8th** | Descending OPS | 100% OPS | See implementation for details |
-| **9th (Pitcher)** | Lowest OPS | 100% OPS | See implementation for details |
+| **6th-9th** | Descending OPS | 100% OPS | See implementation for details |
 
 #### Mathematical Formulas
 
@@ -39,23 +38,22 @@ ops = obp + slg
 contactScore = avg + speedScore
 speedScore = sb_percent
 
-// Position Ranking
+// Position Ranking (Modern Analytics Order)
 position1 = max(obp)                    // Leadoff
-position2 = max(avg + speedScore)       // Contact
-position3 = max(ops)                    // Best hitter
-position4 = max(slg)                    // Cleanup
-position5 = max(slg) [excluding pos4]   // Protection
-position6-8 = sort(ops, descending)     // Descending order
-position9 = min(ops)                    // Weakest
+position4 = max(slg)                    // Cleanup (priority #2)
+position2 = max(ops) [remaining]        // Elite hitter (priority #3)
+position5 = max(slg) [excluding pos4]   // Protection (priority #4)
+position3 = max(ops) [remaining]        // Remaining talent (priority #5)
+position6-9 = sort(ops, descending)     // Descending order (remaining players)
 ```
 
 #### Confidence System Integration
 
-All stats are penalized based on at-bat confidence:
-- **Full Confidence (12+ AB):** No penalty (0%)
-- **Medium Confidence (6-11 AB):** 15% penalty
-- **Low Confidence (3-5 AB):** 30% penalty
-- **Excluded (<3 AB):** Filtered out entirely
+All stats are penalized based on plate appearance confidence:
+- **Full Confidence (15+ PA):** No penalty (0%)
+- **Medium Confidence (8-14 PA):** 15% penalty
+- **Low Confidence (4-7 PA):** 30% penalty
+- **Excluded (<4 PA):** Filtered out entirely
 
 ```javascript
 penalizedStat = originalStat * (1 - penalty)
@@ -64,7 +62,7 @@ penalizedStat = originalStat * (1 - penalty)
 ## Algorithm 2: Situational Analytics Strategy
 
 **Function:** `generateJacksCustomLocalLeagueOrder()`  
-**File:** `src/DraggableBattingOrderMantine.tsx` (lines 522-663)  
+**File:** `src/DraggableBattingOrderMantine.tsx` (lines 528-676)  
 **Strategy:** Advanced metrics optimization using game theory and situational awareness
 
 ### Core Logic
@@ -167,11 +165,11 @@ The algorithm uses situational statistics when available, with confidence weight
 
 #### Confidence System Integration
 
-**Basic Stats Penalty (based on total AB):**
-- 12+ AB: 0% penalty (Full confidence)
-- 6-11 AB: 15% penalty (Medium confidence)
-- 3-5 AB: 30% penalty (Low confidence)
-- <3 AB: 100% penalty (Excluded)
+**Basic Stats Penalty (based on total PA):**
+- 15+ PA: 0% penalty (Full confidence)
+- 8-14 PA: 15% penalty (Medium confidence)
+- 4-7 PA: 30% penalty (Low confidence)
+- <4 PA: 100% penalty (Excluded)
 
 **Situational Stats Penalty (based on situational AB):**
 - 5+ AB: 0% penalty (Full confidence)
@@ -183,7 +181,7 @@ The algorithm uses situational statistics when available, with confidence weight
 
 ### Basic Hitting Stats
 - **AVG (Batting Average):** Hits / At-Bats
-- **OBP (On-Base Percentage):** (Hits + Walks + HBP) / (AB + Walks + HBP + SF)
+- **OBP (On-Base Percentage):** (Hits + Walks + HBP) / (PA)
 - **SLG (Slugging Percentage):** Total Bases / At-Bats
 - **OPS (On-Base Plus Slugging):** OBP + SLG
 
@@ -203,7 +201,7 @@ The algorithm uses situational statistics when available, with confidence weight
 ### Player Filtering
 Both algorithms filter players by confidence level:
 1. Filter players with any stats (avg > 0 OR obp > 0 OR slg > 0)
-2. Filter players with sufficient AB (>= 3)
+2. Filter players with sufficient PA (>= 4)
 3. Use primary players if available, otherwise use all players
 
 ### Penalty Application
@@ -245,5 +243,5 @@ After algorithm execution, penalized players are mapped back to original players
 
 ---
 
-*This documentation is automatically updated on each commit. Last algorithm code inspection: 2025-09-21 (2e059d6)*
+*This documentation is automatically updated on each commit. Last algorithm code inspection: 2025-09-21 (28caec9)*
 *Generated by: update-algorithm-docs.js v1.0*

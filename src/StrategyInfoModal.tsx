@@ -33,11 +33,11 @@ const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, 
               fit="contain"
             />
             <Title order={4} c="blue">
-              Traditional Baseball Strategy
+              Modern Baseball Consensus Strategy
             </Title>
           </Group>
           <Text size="sm" c="dimmed">
-            Simple, proven approach that's easy to understand and explain to players and parents
+            Data-driven approach based on modern analytical consensus and current baseball optimization strategies
           </Text>
         </Paper>
 

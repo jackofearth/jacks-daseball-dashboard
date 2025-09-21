@@ -17,7 +17,8 @@ import {
   Box,
   Affix,
   Button,
-  NavLink
+  NavLink,
+  Image
 } from '@mantine/core';
 import {
   IconCheck,
@@ -78,16 +79,36 @@ const HelpPage: React.FC = () => {
                 label="Quick Start Guide" 
                 href="#quick-start"
                 leftSection={<IconCheck size={14} />}
+                onClick={() => {
+                  const element = document.getElementById('quick-start');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
               />
               <NavLink 
                 label="Manual Adjustments" 
                 href="#manual-adjustments"
                 leftSection={<IconGripVertical size={14} />}
+                c="blue"
+                onClick={() => {
+                  const element = document.getElementById('manual-adjustments');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
               />
               <NavLink 
                 label="FAQ" 
                 href="#common-questions"
                 leftSection={<IconQuestionMark size={14} />}
+                c="red"
+                onClick={() => {
+                  const element = document.getElementById('common-questions');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
               />
             </NavLink>
             
@@ -97,33 +118,31 @@ const HelpPage: React.FC = () => {
               childrenOffset={28}
             >
               <NavLink 
-                label="Traditional Baseball" 
-                href="#traditional-mlb"
+                label="Modern Baseball Consensus" 
+                href="#modern-baseball"
                 leftSection={<IconChartBar size={14} />}
+                c="blue"
               />
               <NavLink 
                 label="Situational Analytics" 
                 href="#situational-analytics"
                 leftSection={<IconTarget size={14} />}
+                c="red"
               />
               <NavLink 
                 label="Confidence System" 
                 href="#confidence-system"
                 leftSection={<IconBolt size={14} />}
+                c="orange"
               />
             </NavLink>
             
-            <NavLink
-              label="Reference"
+            <NavLink 
+              label="Stats Glossary" 
+              href="#baseball-stats-glossary"
               leftSection={<IconInfoCircle size={16} />}
-              childrenOffset={28}
-            >
-              <NavLink 
-                label="Stats Glossary" 
-                href="#baseball-stats-glossary"
-                leftSection={<IconInfoCircle size={14} />}
-              />
-            </NavLink>
+              c="violet"
+            />
           </Stack>
         </Card>
 
@@ -143,7 +162,7 @@ const HelpPage: React.FC = () => {
             </List.Item>
             <List.Item icon={<IconTarget size={16} />}>
               <Text fw={500}>Choose strategy and click "Generate Batting Order"</Text>
-              <Text size="sm" c="dimmed">Select Traditional Baseball for proven approach or Situational Analytics for advanced optimization, then click the green "Generate Batting Order" button</Text>
+              <Text size="sm" c="dimmed">Select Modern Baseball Consensus for data-driven approach or Situational Analytics for advanced optimization, then click the green "Generate Batting Order" button</Text>
             </List.Item>
             <List.Item icon={<IconGripVertical size={16} />}>
               <Text fw={500}>Make adjustments</Text>
@@ -157,7 +176,7 @@ const HelpPage: React.FC = () => {
           
           <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
             <Text size="sm">
-              <Text fw={500} component="span">New to the app?</Text> Start with Traditional Baseball strategy - it's simple and proven.
+              <Text fw={500} component="span">New to the app?</Text> Start with Modern Baseball Consensus strategy - it's data-driven and proven.
             </Text>
           </Alert>
         </Card>
@@ -249,7 +268,7 @@ const HelpPage: React.FC = () => {
                 <Text fw={500}>What if the algorithm puts a slow player in leadoff?</Text>
               </Accordion.Control>
               <Accordion.Panel>
-                <Text>The Traditional Baseball algorithm prioritizes getting on base. If you want speed emphasis, try Situational Analytics or manually adjust.</Text>
+                <Text>The Modern Baseball Consensus algorithm prioritizes getting on base. If you want speed emphasis, try Situational Analytics or manually adjust.</Text>
               </Accordion.Panel>
             </Accordion.Item>
             
@@ -267,7 +286,7 @@ const HelpPage: React.FC = () => {
                 <Text fw={500}>Can I use this for different age groups?</Text>
               </Accordion.Control>
               <Accordion.Panel>
-                <Text>Yes! Traditional Baseball works well for all levels. Situational Analytics is especially effective for younger players where small-ball tactics matter more.</Text>
+                <Text>Yes! Modern Baseball Consensus works well for all levels. Situational Analytics is especially effective for younger players where small-ball tactics matter more.</Text>
               </Accordion.Panel>
             </Accordion.Item>
             
@@ -285,7 +304,7 @@ const HelpPage: React.FC = () => {
                 <Text fw={500}>How accurate are these algorithms?</Text>
               </Accordion.Control>
               <Accordion.Panel>
-                <Text>They're based on proven baseball strategy (Traditional Baseball) and modern analytics (Situational). They optimize for statistical probability, but baseball is still a game where anything can happen.</Text>
+                <Text>They're based on modern analytical consensus (Modern Baseball Consensus) and advanced situational metrics (Situational Analytics). They optimize for statistical probability, but baseball is still a game where anything can happen.</Text>
               </Accordion.Panel>
             </Accordion.Item>
           </Accordion>
@@ -298,30 +317,36 @@ const HelpPage: React.FC = () => {
           Batting Order Strategies
         </Title>
 
-        {/* Traditional MLB Strategy */}
-        <Card id="traditional-mlb" withBorder p="lg">
+        {/* Modern Baseball Consensus Strategy */}
+        <Card id="modern-baseball" withBorder p="lg">
           <Group mb="md">
-            <ThemeIcon size="lg" radius="md" color="blue" variant="light">
-              <IconChartBar size={20} />
-            </ThemeIcon>
-            <Title order={2} c="blue">Traditional Baseball Strategy</Title>
+            <Image
+              src="/mlblogo.png"
+              alt="Baseball Logo"
+              w={60}
+              h={45}
+              fit="contain"
+            />
+            <Title order={2} c="blue">Modern Baseball Consensus Strategy</Title>
           </Group>
           
           <Box mb="lg">
             <Title order={3} mb="sm">Why this strategy?</Title>
             <List size="md" spacing="xs">
-              <List.Item>A simple, proven approach used at the highest levels of baseball.</List.Item>
+              <List.Item>Based on modern analytical consensus and current baseball optimization strategies.</List.Item>
+              <List.Item>Reflects the latest research on run production and batting order efficiency.</List.Item>
             </List>
           </Box>
 
           <Box>
-            <Title order={3} mb="sm">The Logic:</Title>
+            <Title order={3} mb="sm">The Logic (Modern Analytics Order):</Title>
             <List size="md" spacing="xs">
-              <List.Item><Text fw={500} component="span">1st batter:</Text> Best at getting on base (starts rallies)</List.Item>
-              <List.Item><Text fw={500} component="span">2nd batter:</Text> Good contact hitter (moves runners along)</List.Item>
-              <List.Item><Text fw={500} component="span">3rd batter:</Text> Your best overall hitter (gets most at-bats)</List.Item>
-              <List.Item><Text fw={500} component="span">4th batter:</Text> Your power hitter (drives in runs)</List.Item>
-              <List.Item><Text fw={500} component="span">5th-9th:</Text> Everyone else, best to worst</List.Item>
+              <List.Item><Text fw={500} component="span">1st batter (Leadoff):</Text> Highest on-base percentage (starts rallies)</List.Item>
+              <List.Item><Text fw={500} component="span">4th batter (Cleanup):</Text> Best power hitter (drives in runs) - Modern priority #2</List.Item>
+              <List.Item><Text fw={500} component="span">2nd batter (Elite Hitter):</Text> Second-best overall hitter (gets elite talent) - Modern priority #3</List.Item>
+              <List.Item><Text fw={500} component="span">5th batter (Protection):</Text> Second-best power hitter (protects cleanup) - Modern priority #4</List.Item>
+              <List.Item><Text fw={500} component="span">3rd batter (Remaining Talent):</Text> Gets remaining top talent - Modern priority #5</List.Item>
+              <List.Item><Text fw={500} component="span">6th-9th:</Text> Descending order by overall performance (remaining players)</List.Item>
             </List>
           </Box>
         </Card>
@@ -329,10 +354,14 @@ const HelpPage: React.FC = () => {
         {/* Situational Analytics Strategy */}
         <Card id="situational-analytics" withBorder p="lg">
           <Group mb="md">
-            <ThemeIcon size="lg" radius="md" color="orange" variant="light">
-              <IconTarget size={20} />
-            </ThemeIcon>
-            <Title order={2}>Situational Analytics Strategy</Title>
+            <Image
+              src="/situational2.jpg"
+              alt="Situational Strategy Logo"
+              w={60}
+              h={45}
+              fit="contain"
+            />
+            <Title order={2} c="red">Situational Analytics Strategy</Title>
           </Group>
           
           <Box mb="lg">
@@ -378,24 +407,24 @@ const HelpPage: React.FC = () => {
 
           <Text fw={500} size="lg" mb="md">Here's what the symbols mean:</Text>
 
-          <Stack gap="sm">
-            <Group>
-              <Badge size="lg" variant="light" color="blue">Full Confidence</Badge>
-              <Text size="sm" c="dimmed">(12+ at-bats): We trust these stats - they've played enough for the numbers to be reliable</Text>
-            </Group>
-            <Group>
-              <Badge size="lg" variant="light" color="yellow" leftSection={<IconBolt size={12} />}>Medium Confidence</Badge>
-              <Text size="sm" c="dimmed">(6-11 at-bats): Pretty good idea of their ability, but we apply a 15% penalty to account for the smaller sample size</Text>
-            </Group>
-            <Group>
-              <Badge size="lg" variant="light" color="orange" leftSection={<IconAlertTriangle size={12} />}>Low Confidence</Badge>
-              <Text size="sm" c="dimmed">(3-5 at-bats): Take these stats with a grain of salt - we apply a 30% penalty because the numbers might not reflect their true ability yet</Text>
-            </Group>
-            <Group>
-              <Badge size="lg" variant="light" color="red" leftSection={<IconX size={12} />}>Excluded</Badge>
-              <Text size="sm" c="dimmed">(Under 3 at-bats): Not enough data to make any reliable assessment - these players are filtered out of the batting order by default, but can be manually added back</Text>
-            </Group>
-          </Stack>
+        <Stack gap="sm">
+          <Group>
+            <Badge size="lg" variant="light" color="green">High Confidence</Badge>
+            <Text size="sm" c="dimmed">(15+ plate appearances): We trust these stats - they've played enough for the numbers to be reliable</Text>
+          </Group>
+          <Group>
+            <Badge size="lg" variant="light" color="yellow" leftSection={<IconBolt size={12} />}>Medium Confidence</Badge>
+            <Text size="sm" c="dimmed">(8-14 plate appearances): Pretty good idea of their ability, but we apply a 15% penalty to account for the smaller sample size</Text>
+          </Group>
+          <Group>
+            <Badge size="lg" variant="light" color="orange" leftSection={<IconAlertTriangle size={12} />}>Low Confidence</Badge>
+            <Text size="sm" c="dimmed">(4-7 plate appearances): Take these stats with a grain of salt - we apply a 30% penalty because the numbers might not reflect their true ability yet</Text>
+          </Group>
+          <Group>
+            <Badge size="lg" variant="light" color="red" leftSection={<IconX size={12} />}>Excluded</Badge>
+            <Text size="sm" c="dimmed">(Under 4 plate appearances): Not enough data to make any reliable assessment - these players are filtered out of the batting order by default, but can be manually added back</Text>
+          </Group>
+        </Stack>
         </Card>
 
         {/* Baseball Stats Glossary */}

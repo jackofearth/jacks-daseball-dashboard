@@ -63,16 +63,16 @@ const ConfidenceSymbolsModal: React.FC<ConfidenceSymbolsModalProps> = ({ isOpen,
         <div style={{ lineHeight: '1.6' }}>
           <ul style={{ paddingLeft: '0', margin: 0, textAlign: 'left' }}>
             <li style={{ marginBottom: '0.75rem' }}>
-              <strong>(NO SYMBOL) Full Confidence (12+ at-bats)</strong>
+              <strong>(NO SYMBOL) Full Confidence (15+ plate appearances)</strong>
             </li>
             <li style={{ marginBottom: '0.75rem' }}>
-              <strong>⚡ Medium Confidence (6-11 at-bats)</strong>
+              <strong>⚡ Medium Confidence (8-14 plate appearances)</strong>
             </li>
             <li style={{ marginBottom: '0.75rem' }}>
-              <strong>⚠️ Low Confidence (3-5 at-bats)</strong>
+              <strong>⚠️ Low Confidence (4-7 plate appearances)</strong>
             </li>
             <li style={{ marginBottom: '0.75rem' }}>
-              <strong>🚫 Excluded (Under 3 at-bats)</strong>
+              <strong>🚫 Excluded (Under 4 plate appearances)</strong>
             </li>
           </ul>
           

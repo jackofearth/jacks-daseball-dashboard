@@ -44,7 +44,7 @@ interface DraggableBattingOrderProps {
 interface SortablePlayerCardProps {
   player: Player;
   position: number;
-  getConfidenceLevel: (ab: number) => { level: string; label: string; color: string; icon: string; penalty: number };
+  getConfidenceLevel: (pa: number) => { level: string; label: string; color: string; icon: string; penalty: number };
   onFieldingPositionChange: (playerId: string, position: string) => void;
   showFieldingDropdowns: boolean;
   availablePositions: string[];
@@ -134,7 +134,7 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
               border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              {confidence.label} ({player.ab || 0} AB){confidence.penalty > 0 ? ` - ${(confidence.penalty * 100)}% penalty applied` : ''}
+              {confidence.label} ({player.pa || 0} PA){confidence.penalty > 0 ? ` - ${(confidence.penalty * 100)}% penalty applied` : ''}
             </div>,
             document.body
           )}
@@ -165,7 +165,7 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const confidence = getConfidenceLevel(player.ab || 0);
+  const confidence = getConfidenceLevel(player.pa || 0);
   const [showTooltip, setShowTooltip] = React.useState(false);
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
 
@@ -244,7 +244,7 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({ player, positio
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
               border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
-              {confidence.label} ({player.ab || 0} AB){confidence.penalty > 0 ? ` - ${(confidence.penalty * 100)}% penalty applied` : ''}
+              {confidence.label} ({player.pa || 0} PA){confidence.penalty > 0 ? ` - ${(confidence.penalty * 100)}% penalty applied` : ''}
             </div>,
             document.body
           )}
@@ -520,19 +520,19 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     setShowPDFCustomization(true);
   };
 
-  // Get confidence level based on AB
-  const getConfidenceLevel = (ab: number) => {
-    if (ab >= 12) return { level: 'full', label: 'Full confidence', color: '#28a745', icon: '', penalty: 0 };
-    if (ab >= 6) return { level: 'medium', label: 'Medium confidence', color: '#ffc107', icon: '⚡', penalty: 0.15 };
-    if (ab >= 3) return { level: 'low', label: 'Low confidence', color: '#fd7e14', icon: '⚠️', penalty: 0.30 };
+  // Get confidence level based on PA
+  const getConfidenceLevel = (pa: number) => {
+    if (pa >= 15) return { level: 'full', label: 'Full confidence', color: '#28a745', icon: '', penalty: 0 };
+    if (pa >= 8) return { level: 'medium', label: 'Medium confidence', color: '#ffc107', icon: '⚡', penalty: 0.15 };
+    if (pa >= 4) return { level: 'low', label: 'Low confidence', color: '#fd7e14', icon: '⚠️', penalty: 0.30 };
     return { level: 'excluded', label: 'Excluded', color: '#dc3545', icon: '🚫', penalty: 1 };
   };
 
-  // Get basic stats penalty (based on total AB)
-  const getBasicStatsPenalty = (ab: number) => {
-    if (ab >= 12) return 0;      // Full confidence
-    if (ab >= 6) return 0.15;    // Medium confidence  
-    if (ab >= 3) return 0.30;    // Low confidence
+  // Get basic stats penalty (based on total PA)
+  const getBasicStatsPenalty = (pa: number) => {
+    if (pa >= 15) return 0;      // Full confidence
+    if (pa >= 8) return 0.15;    // Medium confidence  
+    if (pa >= 4) return 0.30;    // Low confidence
     return 1;                    // Excluded
   };
 
@@ -546,7 +546,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
   // Apply confidence penalty to offensive stats with different penalties for basic vs situational
   const applyConfidencePenalty = (player: Player) => {
-    const basicPenalty = getBasicStatsPenalty(player.ab || 0);
+    const basicPenalty = getBasicStatsPenalty(player.pa || 0);
     const situationalPenalty = getSituationalStatsPenalty(player.ab_risp || 0);
     
     return {
@@ -672,7 +672,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     );
     
     const primaryPlayers = playersWithStats.filter(player => 
-      (player.ab || 0) >= 3
+      (player.pa || 0) >= 4
     );
     
     
@@ -681,11 +681,22 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     
     // Apply confidence penalties to all players
     const penalizedPlayers = allPlayers.map(applyConfidencePenalty);
+    
+    // Add stolenBaseSuccess field and calculate rates for Situational Analytics
+    const playersWithStolenBaseSuccess = penalizedPlayers.map(p => ({
+      ...p,
+      stolenBaseSuccess: (p.sb_percent || 0) * (Math.min((p.sb || 0) + (p.cs || 0), 10) / 10),  // Stolen base confidence weighting
+      // Calculate rate-based stats if not already present
+      hr_rate: p.hr_rate || ((p.ab || 0) > 0 ? (p.hr || 0) / (p.ab || 1) : 0),
+      xbh_rate: p.xbh_rate || ((p.ab || 0) > 0 ? (p.xbh || 0) / (p.ab || 1) : 0),
+      two_out_rbi_rate: p.two_out_rbi_rate || ((p.ab_risp || 0) > 0 ? (p.two_out_rbi || 0) / (p.ab_risp || 1) : 0)
+    }));
+    
     const optimalOrder: Player[] = new Array(9).fill(null);
     const usedPlayers = new Set<string>();
 
     const findBestPlayer = (criteria: (player: Player) => number, excludeUsed = true) => {
-      return penalizedPlayers
+      return playersWithStolenBaseSuccess
         .filter(player => !excludeUsed || !usedPlayers.has(player.id))
         .sort((a, b) => criteria(b) - criteria(a))[0];
     };
@@ -698,14 +709,14 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     };
 
     // Helper function to evaluate players with situational fallbacks
-    const evaluatePlayer = (player: Player, position: number) => {
+    const evaluatePlayer = (player: any, position: number) => {
       const hasSituationalData = (player.ab_risp || 0) >= 2;
       const situationalConfidence = (player.ab_risp || 0) >= 5 ? 1.0 : (player.ab_risp || 0) >= 3 ? 0.7 : 0.3;
       
       switch (position) {
         case 0: // Lead-off (1st): Speed + OBP
           return player.obp * 0.4 + 
-                 (player.sb_percent || 0) * 0.3 + 
+                 (player.stolenBaseSuccess || 0) * 0.3 + 
                  (player.contact_percent || 0) * 0.2 + 
                  player.avg * 0.1;
                  
@@ -819,7 +830,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     );
     
     const primaryPlayers = playersWithStats.filter(player => 
-      (player.ab || 0) >= 3
+      (player.pa || 0) >= 4
     );
     
     
@@ -829,12 +840,13 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     // Apply confidence penalties to all players
     const penalizedPlayers = playersToUse.map(applyConfidencePenalty);
 
-    // MLB Traditional Order Strategy - use penalized stats for ranking
+    // MLB Modern Analytics Order Strategy - use penalized stats for ranking
     const playerStats = penalizedPlayers.map(p => ({
       ...p,
       ops: p.obp + p.slg,  // On-base + Slugging (with penalty applied)
       contactScore: p.avg + p.obp,
-      speedScore: p.sb_percent || 0
+      speedScore: p.sb_percent || 0,
+      stolenBaseSuccess: (p.sb_percent || 0) * (Math.min((p.sb || 0) + (p.cs || 0), 10) / 10)  // Stolen base confidence weighting
     }));
 
     const order: { [key: number]: Player } = {};
@@ -849,25 +861,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       used.add(leadoffCandidates[0].id);
     }
 
-    // 2. CONTACT HITTER - Best combo of AVG + speed
-    const contactCandidates = playerStats
-      .filter(p => !used.has(p.id))
-      .sort((a, b) => (b.avg + b.speedScore) - (a.avg + a.speedScore));
-    if (contactCandidates.length > 0) {
-      order[2] = contactCandidates[0];
-      used.add(contactCandidates[0].id);
-    }
-
-    // 3. BEST HITTER - Highest OPS overall
-    const bestHitterCandidates = playerStats
-      .filter(p => !used.has(p.id))
-      .sort((a, b) => b.ops - a.ops);
-    if (bestHitterCandidates.length > 0) {
-      order[3] = bestHitterCandidates[0];
-      used.add(bestHitterCandidates[0].id);
-    }
-
-    // 4. CLEANUP - Best power (highest SLG)
+    // 4. CLEANUP - Best power (highest SLG) - Modern analytics priority #2
     const cleanupCandidates = playerStats
       .filter(p => !used.has(p.id))
       .sort((a, b) => b.slg - a.slg);
@@ -876,7 +870,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       used.add(cleanupCandidates[0].id);
     }
 
-    // 5. PROTECTION - Second best power hitter
+    // 2. ELITE HITTER - Highest remaining OPS (Modern analytics priority #3)
+    const eliteHitterCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.ops - a.ops);
+    if (eliteHitterCandidates.length > 0) {
+      order[2] = eliteHitterCandidates[0];
+      used.add(eliteHitterCandidates[0].id);
+    }
+
+    // 5. PROTECTION - Second best power hitter - Modern analytics priority #4
     const protectionCandidates = playerStats
       .filter(p => !used.has(p.id))
       .sort((a, b) => b.slg - a.slg);
@@ -885,25 +888,25 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       used.add(protectionCandidates[0].id);
     }
 
-    // 6-8. DESCENDING ORDER - By OPS
+    // 3. REMAINING TALENT - Gets remaining top talent (Modern analytics priority #5)
+    const remainingTalentCandidates = playerStats
+      .filter(p => !used.has(p.id))
+      .sort((a, b) => b.ops - a.ops);
+    if (remainingTalentCandidates.length > 0) {
+      order[3] = remainingTalentCandidates[0];
+      used.add(remainingTalentCandidates[0].id);
+    }
+
+    // 6-9. DESCENDING ORDER - By OPS (remaining players)
     const remainingByOPS = playerStats
       .filter(p => !used.has(p.id))
       .sort((a, b) => b.ops - a.ops);
 
-    for (let pos = 6; pos <= 8; pos++) {
+    for (let pos = 6; pos <= 9; pos++) {
       if (remainingByOPS.length > pos - 6) {
         order[pos] = remainingByOPS[pos - 6];
         used.add(remainingByOPS[pos - 6].id);
       }
-    }
-
-    // 9. PITCHER SPOT - Weakest hitter (lowest OPS)
-    const weakestCandidates = playerStats
-      .filter(p => !used.has(p.id))
-      .sort((a, b) => a.ops - b.ops);
-    if (weakestCandidates.length > 0) {
-      order[9] = weakestCandidates[0];
-      used.add(weakestCandidates[0].id);
     }
 
     // Convert to array format and map back to original players
@@ -1013,7 +1016,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                       textAlign: 'center',
                       maxWidth: '140px'
                     }}>
-                      Traditional Baseball
+                      Modern Baseball Consensus
                     </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1326,7 +1329,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         }}>
           {players.map(player => {
             const isInOrder = battingOrder.find(p => p.id === player.id);
-            const confidence = getConfidenceLevel(player.ab || 0);
+            const confidence = getConfidenceLevel(player.pa || 0);
             
             return (
               <AvailablePlayerCard 

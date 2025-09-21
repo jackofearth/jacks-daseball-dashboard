@@ -68,10 +68,10 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
     
     // Direct column mappings
     const avgColumn = 'AVG';
-    const obpColumn = 'OBP';
     const slgColumn = 'SLG';
     const opsColumn = 'OPS';
     const abColumn = 'AB';
+    const paColumn = 'PA';
     const sbColumn = 'SB';
     const sbPercentColumn = 'SB%';
     const bbKColumn = 'BB/K';
@@ -123,11 +123,21 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
         }
         
         const avg = avgColumn ? parseFloat(row[avgColumn]) || 0 : 0;
-        const obp = obpColumn ? parseFloat(row[obpColumn]) || 0 : 0;
+        const ab = abColumn ? parseFloat(row[abColumn]) || 0 : 0;
+        const pa = paColumn ? parseFloat(row[paColumn]) || 0 : 0;
+        
+        // Get raw stats for OBP calculation
+        const hits = parseFloat(row[10]) || 0;  // H
+        const walks = parseFloat(row[17]) || 0; // BB
+        const hbp = parseFloat(row[20]) || 0;   // HBP
+        
+        // Calculate OBP from raw stats (override CSV value)
+        const obp = pa > 0 ? (hits + walks + hbp) / pa : 0;
+        
         const slg = slgColumn ? parseFloat(row[slgColumn]) || 0 : 0;
         const ops = opsColumn ? parseFloat(row[opsColumn]) || 0 : (obp + slg);
-        const ab = abColumn ? parseFloat(row[abColumn]) || 0 : 0;
         const sb = sbColumn ? parseFloat(row[sbColumn]) || 0 : 0;
+        const cs = parseFloat(row[27]) || 0;  // CS (Caught Stealing)
         const sb_percent = sbPercentColumn ? parseFloat(row[sbPercentColumn]) || 0 : 0;
         const bb_k = bbKColumn ? parseFloat(row[bbKColumn]) || 0 : 0;
         const contact_percent = contactPercentColumn ? parseFloat(row[contactPercentColumn]) || 0 : 0;
@@ -193,6 +203,11 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
           return Math.max(1, Math.round(totalAB * orderFactor));
         })();
 
+        // Calculate rate-based stats
+        const hr_rate = ab > 0 ? hr / ab : 0;
+        const xbh_rate = ab > 0 ? xbh / ab : 0;
+        const two_out_rbi_rate = ab_risp > 0 ? two_out_rbi / ab_risp : 0;
+
         return {
           id: generateId(),
           name: displayName,
@@ -203,7 +218,9 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
           slg,
           ops,
           ab,
+          pa,
           sb,
+          cs,
           sb_percent,
           bb_k,
           contact_percent,
@@ -213,7 +230,11 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
           xbh,
           hr,
           tb,
-          ab_risp
+          ab_risp,
+          // Rate-based stats
+          hr_rate,
+          xbh_rate,
+          two_out_rbi_rate
         };
       });
 
@@ -363,6 +384,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
       slg: statsData.slg || 0,
       ops: statsData.ops || 0,
       ab: statsData.ab || 0,
+      pa: statsData.pa || 0,
       sb: statsData.sb || 0,
       sb_percent: statsData.sb_percent || 0,
       bb_k: statsData.bb_k || 0,
@@ -373,7 +395,11 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
       xbh: statsData.xbh || 0,
       hr: statsData.hr || 0,
       tb: statsData.tb || 0,
-      ab_risp: statsData.ab_risp || 0
+      ab_risp: statsData.ab_risp || 0,
+      // Rate-based stats
+      hr_rate: (statsData.ab || 0) > 0 ? (statsData.hr || 0) / (statsData.ab || 1) : 0,
+      xbh_rate: (statsData.ab || 0) > 0 ? (statsData.xbh || 0) / (statsData.ab || 1) : 0,
+      two_out_rbi_rate: (statsData.ab_risp || 0) > 0 ? (statsData.two_out_rbi || 0) / (statsData.ab_risp || 1) : 0
     };
     
     addPlayer(playerData);
@@ -385,14 +411,15 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
     <Stack gap="md">
       {/* Header */}
       <Paper p="md" withBorder>
-        <Group justify="space-between" align="center">
-          <div>
-            <Title order={3}>Player Management</Title>
+        <Stack gap="md">
+          <Group justify="center">
+            <Title order={2}>Player Management</Title>
+          </Group>
+          <Group justify="space-between" align="center">
             <Text size="sm" c="dimmed">
               {players.length} players • {csvFiles.length} CSV files imported
             </Text>
-          </div>
-          <Group>
+            <Group>
             <Button
               leftSection={<IconUpload size={16} />}
               onClick={handleFileUpload}
@@ -423,6 +450,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
             </Button>
           </Group>
         </Group>
+        </Stack>
       </Paper>
 
       {/* Players Grid */}
@@ -536,13 +564,14 @@ interface PlayerCardProps {
 }
 
 const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => {
-  const getConfidenceLevel = (ab: number) => {
-    if (ab >= 12) return { level: 'High', color: 'green' };
-    if (ab >= 6) return { level: 'Medium', color: 'yellow' };
-    return { level: 'Low', color: 'red' };
+  const getConfidenceLevel = (pa: number) => {
+    if (pa >= 15) return { level: 'High', color: 'green' };
+    if (pa >= 8) return { level: 'Medium', color: 'yellow' };
+    if (pa >= 4) return { level: 'Low', color: 'orange' };
+    return { level: 'Excluded', color: 'red' };
   };
 
-  const confidence = getConfidenceLevel(player.ab);
+  const confidence = getConfidenceLevel(player.pa || 0);
 
   return (
     <Card shadow="sm" padding="md" radius="md" withBorder>
@@ -582,8 +611,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => 
           <Text fw={500}>{player.ops.toFixed(3)}</Text>
         </Group>
         <Group justify="space-between">
-          <Text size="sm" c="dimmed">AB</Text>
-          <Text fw={500}>{player.ab}</Text>
+          <Text size="sm" c="dimmed">PA</Text>
+          <Text fw={500}>{player.pa || 0}</Text>
         </Group>
         <Group justify="space-between">
           <Text size="sm" c="dimmed">Confidence</Text>
@@ -614,6 +643,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => 
       slg: player?.slg || 0,
       ops: player?.ops || 0,
       ab: player?.ab || 0,
+      pa: player?.pa || 0,
       sb: player?.sb || 0,
       sb_percent: player?.sb_percent || 0,
       bb_k: player?.bb_k || 0,
@@ -637,7 +667,17 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => 
   }, [form.values.obp, form.values.slg, form]);
 
   const handleSubmit = (values: typeof form.values) => {
-    onSave(values);
+    // Calculate rate-based stats
+    const hr_rate = (values.ab || 0) > 0 ? (values.hr || 0) / (values.ab || 1) : 0;
+    const xbh_rate = (values.ab || 0) > 0 ? (values.xbh || 0) / (values.ab || 1) : 0;
+    const two_out_rbi_rate = (values.ab_risp || 0) > 0 ? (values.two_out_rbi || 0) / (values.ab_risp || 1) : 0;
+    
+    onSave({
+      ...values,
+      hr_rate,
+      xbh_rate,
+      two_out_rbi_rate
+    });
   };
 
   return (
@@ -703,9 +743,9 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => 
           </Grid.Col>
           <Grid.Col span={6}>
             <NumberInput
-              label="AB (At Bats)"
+              label="PA (Plate Appearances)"
               min={0}
-              {...form.getInputProps('ab')}
+              {...form.getInputProps('pa')}
             />
           </Grid.Col>
           <Grid.Col span={6}>
@@ -744,7 +784,7 @@ const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, o
       obp: 0,
       slg: 0,
       ops: 0,
-      ab: 0,
+      pa: 0,
       sb: 0,
       sb_percent: 0,
       bb_k: 0,
@@ -822,9 +862,9 @@ const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, o
           </Grid.Col>
           <Grid.Col span={6}>
             <NumberInput
-              label="AB (At Bats)"
+              label="PA (Plate Appearances)"
               min={0}
-              {...form.getInputProps('ab')}
+              {...form.getInputProps('pa')}
             />
           </Grid.Col>
           <Grid.Col span={6}>
