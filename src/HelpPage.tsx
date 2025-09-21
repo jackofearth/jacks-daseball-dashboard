@@ -79,24 +79,12 @@ const HelpPage: React.FC = () => {
                 label="Quick Start Guide" 
                 href="#quick-start"
                 leftSection={<IconCheck size={14} />}
-                onClick={() => {
-                  const element = document.getElementById('quick-start');
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }}
               />
               <NavLink 
                 label="Manual Adjustments" 
                 href="#manual-adjustments"
                 leftSection={<IconGripVertical size={14} />}
                 c="blue"
-                onClick={() => {
-                  const element = document.getElementById('manual-adjustments');
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }}
               />
               <NavLink 
                 label="FAQ" 
@@ -147,7 +135,7 @@ const HelpPage: React.FC = () => {
         </Card>
 
         {/* Quick Start Guide */}
-        <Card id="quick-start" withBorder p="lg">
+        <Card id="quick-start" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <ThemeIcon size="lg" radius="md" color="blue" variant="light">
               <IconCheck size={20} />
@@ -182,7 +170,7 @@ const HelpPage: React.FC = () => {
         </Card>
 
         {/* Manual Adjustments */}
-        <Card id="manual-adjustments" withBorder p="lg">
+        <Card id="manual-adjustments" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <ThemeIcon size="lg" radius="md" color="blue" variant="light">
               <IconTarget size={20} />
@@ -218,7 +206,7 @@ const HelpPage: React.FC = () => {
         </Card>
 
         {/* FAQ */}
-        <Card id="common-questions" withBorder p="lg">
+        <Card id="common-questions" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <ThemeIcon size="lg" radius="md" color="red" variant="light">
               <IconQuestionMark size={20} />
@@ -318,7 +306,7 @@ const HelpPage: React.FC = () => {
         </Title>
 
         {/* Modern Baseball Consensus Strategy */}
-        <Card id="modern-baseball" withBorder p="lg">
+        <Card id="modern-baseball" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <Image
               src="/mlblogo.png"
@@ -327,32 +315,32 @@ const HelpPage: React.FC = () => {
               h={45}
               fit="contain"
             />
-            <Title order={2} c="blue">Modern Baseball Consensus Strategy</Title>
+            <Title order={2} c="blue">Modern Baseball Consensus</Title>
           </Group>
           
           <Box mb="lg">
             <Title order={3} mb="sm">Why this strategy?</Title>
             <List size="md" spacing="xs">
-              <List.Item>Based on modern analytical consensus and current baseball optimization strategies.</List.Item>
-              <List.Item>Reflects the latest research on run production and batting order efficiency.</List.Item>
+              <List.Item>Based on current baseball optimization strategies.</List.Item>
+              <List.Item>Easy to understand and explain to players & parents.</List.Item>
             </List>
           </Box>
 
           <Box>
-            <Title order={3} mb="sm">The Logic (Modern Analytics Order):</Title>
+            <Title order={3} mb="sm">The Logic:</Title>
             <List size="md" spacing="xs">
-              <List.Item><Text fw={500} component="span">1st batter (Leadoff):</Text> Highest on-base percentage (starts rallies)</List.Item>
-              <List.Item><Text fw={500} component="span">4th batter (Cleanup):</Text> Best power hitter (drives in runs) - Modern priority #2</List.Item>
-              <List.Item><Text fw={500} component="span">2nd batter (Elite Hitter):</Text> Second-best overall hitter (gets elite talent) - Modern priority #3</List.Item>
-              <List.Item><Text fw={500} component="span">5th batter (Protection):</Text> Second-best power hitter (protects cleanup) - Modern priority #4</List.Item>
-              <List.Item><Text fw={500} component="span">3rd batter (Remaining Talent):</Text> Gets remaining top talent - Modern priority #5</List.Item>
-              <List.Item><Text fw={500} component="span">6th-9th:</Text> Descending order by overall performance (remaining players)</List.Item>
+              <List.Item><Text fw={500} component="span">1st batter:</Text> Gets on base consistently</List.Item>
+              <List.Item><Text fw={500} component="span">2nd batter:</Text> Elite overall hitter</List.Item>
+              <List.Item><Text fw={500} component="span">3rd batter:</Text> Third-best overall hitter</List.Item>
+              <List.Item><Text fw={500} component="span">4th batter:</Text> Best power hitter</List.Item>
+              <List.Item><Text fw={500} component="span">5th batter:</Text> Second-best power hitter</List.Item>
+              <List.Item><Text fw={500} component="span">6th-9th:</Text> Good hitting and on-base ability</List.Item>
             </List>
           </Box>
         </Card>
 
         {/* Situational Analytics Strategy */}
-        <Card id="situational-analytics" withBorder p="lg">
+        <Card id="situational-analytics" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <Image
               src="/situational2.jpg"
@@ -361,7 +349,7 @@ const HelpPage: React.FC = () => {
               h={45}
               fit="contain"
             />
-            <Title order={2} c="red">Situational Analytics Strategy</Title>
+            <Title order={2} c="red">Situational Analytics</Title>
           </Group>
           
           <Box mb="lg">
@@ -379,13 +367,13 @@ const HelpPage: React.FC = () => {
               <List.Item><Text fw={500} component="span">2nd batter:</Text> Makes contact in clutch situations</List.Item>
               <List.Item><Text fw={500} component="span">3rd batter:</Text> Balanced hitter with power and situational awareness</List.Item>
               <List.Item><Text fw={500} component="span">4th batter:</Text> Drives in runs when it matters</List.Item>
-              <List.Item><Text fw={500} component="span">5th-9th:</Text> Optimized for turning the lineup over</List.Item>
+              <List.Item><Text fw={500} component="span">5th-9th:</Text> Good hitting and on-base ability</List.Item>
             </List>
           </Box>
         </Card>
 
         {/* Confidence System */}
-        <Card id="confidence-system" withBorder p="lg">
+        <Card id="confidence-system" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <ThemeIcon size="lg" radius="md" color="orange" variant="light">
               <IconBolt size={20} />
@@ -428,7 +416,7 @@ const HelpPage: React.FC = () => {
         </Card>
 
         {/* Baseball Stats Glossary */}
-        <Card id="baseball-stats-glossary" withBorder p="lg">
+        <Card id="baseball-stats-glossary" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <ThemeIcon size="lg" radius="md" color="violet" variant="light">
               <IconChartBar size={20} />

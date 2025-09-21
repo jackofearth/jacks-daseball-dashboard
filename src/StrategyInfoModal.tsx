@@ -33,11 +33,11 @@ const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, 
               fit="contain"
             />
             <Title order={4} c="blue">
-              Modern Baseball Consensus Strategy
+              Modern Baseball Consensus
             </Title>
           </Group>
           <Text size="sm" c="dimmed">
-            Data-driven approach based on modern analytical consensus and current baseball optimization strategies
+            A straightforward approach focused on your best hitters. Easy to understand and explain to players & parents.
           </Text>
         </Paper>
 
@@ -51,11 +51,11 @@ const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, 
               fit="contain"
             />
             <Title order={4} c="green">
-              Situational Analytics Strategy
+              Situational Analytics
             </Title>
           </Group>
           <Text size="sm" c="dimmed">
-            Advanced metrics for situational play and game theory
+            Maximizes situational play using a finely-tuned balance of advanced metrics. Designed specifically for lower-level and youth teams to get the most out of every situation.
           </Text>
         </Paper>
 

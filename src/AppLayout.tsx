@@ -110,7 +110,7 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
         </Stack>
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main style={{ scrollPaddingTop: '150px' }}>
         {children}
       </AppShell.Main>
     </AppShell>

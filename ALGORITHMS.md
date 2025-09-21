@@ -62,7 +62,7 @@ penalizedStat = originalStat * (1 - penalty)
 ## Algorithm 2: Situational Analytics Strategy
 
 **Function:** `generateJacksCustomLocalLeagueOrder()`  
-**File:** `src/DraggableBattingOrderMantine.tsx` (lines 528-676)  
+**File:** `src/DraggableBattingOrderMantine.tsx` (lines 528-680)  
 **Strategy:** Advanced metrics optimization using game theory and situational awareness
 
 ### Core Logic
