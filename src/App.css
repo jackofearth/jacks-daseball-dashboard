@@ -5,6 +5,22 @@
   --theme-accent: #28a745;
 }
 
+/* Cool Sports Font for Headings */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+/* Saira Font for Lineup Cards */
+@import url('https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800;900&display=swap');
+
+/* Apply cool font only to headings */
+h1, h2, h3, h4, h5, h6,
+.mantine-Title-root,
+.title {
+  font-family: 'Rajdhani', 'Orbitron', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 /* Hide number input spinners/arrows */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {

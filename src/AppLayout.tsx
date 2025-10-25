@@ -1,6 +1,5 @@
 import React from 'react';
-import { AppShell, Burger, Group, Title, ActionIcon, Text, Avatar, Stack, NavLink, ThemeIcon } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { AppShell, Group, Title, ActionIcon, Text, Image, Center, Anchor, ThemeIcon } from '@mantine/core';
 import { IconHelp, IconUsers, IconGripVertical, IconPencil } from '@tabler/icons-react';
 import { TeamInfo } from './StorageService';
 
@@ -13,29 +12,27 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, teamInfo, activeSection, onSectionChange, onCustomizeTheme }: AppLayoutProps) {
-  const [opened, { toggle }] = useDisclosure();
-
   return (
     <AppShell
       header={{ height: 100 }}
-      navbar={{ 
-        width: 300, 
-        breakpoint: 'sm', 
-        collapsed: { mobile: !opened } 
-      }}
       padding="md"
     >
       <AppShell.Header style={{ background: 'var(--mantine-color-dark-7)' }}>
         <Group h="100%" px="md" justify="space-between">
           <Group>
-            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="white" />
             <Group gap="lg">
               {teamInfo.logo && (
-                <Avatar
+                <Image
                   src={teamInfo.logo}
                   alt={`${teamInfo.name} logo`}
-                  size="xl"
-                  radius="md"
+                  w={80}
+                  h={80}
+                  fit="contain"
+                  style={{ 
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    padding: '8px'
+                  }}
                 />
               )}
               <div>
@@ -63,52 +60,68 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
             </Group>
           </Group>
           
+          <Center style={{ height: '100%', flex: 1 }}>
+            <Group gap="xl">
+              <Anchor
+                href="#players"
+                c="white"
+                fw={activeSection === 'players' ? 700 : 500}
+                style={{ 
+                  textDecoration: 'none',
+                  color: activeSection === 'players' ? 'var(--mantine-color-blue-4)' : 'white',
+                  fontSize: '16px'
+                }}
+                onClick={() => onSectionChange('players')}
+              >
+                <Group gap="xs">
+                  <ThemeIcon size="sm" radius="md" color="blue" variant="light">
+                    <IconUsers size={16} />
+                  </ThemeIcon>
+                  Player Management
+                </Group>
+              </Anchor>
+              
+              <Anchor
+                href="#lineup"
+                c="white"
+                fw={activeSection === 'lineup' ? 700 : 500}
+                style={{ 
+                  textDecoration: 'none',
+                  color: activeSection === 'lineup' ? 'var(--mantine-color-orange-4)' : 'white',
+                  fontSize: '16px'
+                }}
+                onClick={() => onSectionChange('lineup')}
+              >
+                <Group gap="xs">
+                  <ThemeIcon size="sm" radius="md" color="orange" variant="light">
+                    <IconGripVertical size={16} />
+                  </ThemeIcon>
+                  Batting Order
+                </Group>
+              </Anchor>
+              
+              <Anchor
+                href="#help"
+                c="white"
+                fw={activeSection === 'help' ? 700 : 500}
+                style={{ 
+                  textDecoration: 'none',
+                  color: activeSection === 'help' ? 'var(--mantine-color-green-4)' : 'white',
+                  fontSize: '16px'
+                }}
+                onClick={() => onSectionChange('help')}
+              >
+                <Group gap="xs">
+                  <ThemeIcon size="sm" radius="md" color="green" variant="light">
+                    <IconHelp size={16} />
+                  </ThemeIcon>
+                  Help
+                </Group>
+              </Anchor>
+            </Group>
+          </Center>
         </Group>
       </AppShell.Header>
-
-      <AppShell.Navbar p="md" style={{ backgroundColor: '#0a0f1c' }}>
-        <Stack gap="xs">
-          
-          <NavLink
-            href="#players"
-            label="Player Management"
-            leftSection={
-              <ThemeIcon size="md" radius="md" color="blue" variant="light">
-                <IconUsers size={18} />
-              </ThemeIcon>
-            }
-            active={activeSection === 'players'}
-            onClick={() => onSectionChange('players')}
-            style={{ borderRadius: '8px', marginBottom: '4px' }}
-          />
-          
-          <NavLink
-            href="#lineup"
-            label="Batting Order"
-            leftSection={
-              <ThemeIcon size="md" radius="md" color="orange" variant="light">
-                <IconGripVertical size={18} />
-              </ThemeIcon>
-            }
-            active={activeSection === 'lineup'}
-            onClick={() => onSectionChange('lineup')}
-            style={{ borderRadius: '8px', marginBottom: '4px' }}
-          />
-          
-          <NavLink
-            href="#help"
-            label="Help"
-            leftSection={
-              <ThemeIcon size="md" radius="md" color="orange" variant="light">
-                <IconHelp size={18} />
-              </ThemeIcon>
-            }
-            active={activeSection === 'help'}
-            onClick={() => onSectionChange('help')}
-            style={{ borderRadius: '8px', marginBottom: '4px' }}
-          />
-        </Stack>
-      </AppShell.Navbar>
 
       <AppShell.Main style={{ scrollPaddingTop: '150px' }}>
         {children}

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
+import toast from 'react-hot-toast';
+import { PDFExportButton } from './components/PDFExportButton';
 import {
   DndContext,
   closestCenter,
@@ -34,13 +36,14 @@ import {
   Switch,
   TextInput,
   SimpleGrid,
-  ThemeIcon
+  ThemeIcon,
+  SegmentedControl,
+  Image
 } from '@mantine/core';
 import {
   IconGripVertical,
   IconTrash,
   IconPlus,
-  IconDownload,
   IconRefresh,
   IconChartBar,
   IconX,
@@ -50,9 +53,8 @@ import {
 } from '@tabler/icons-react';
 import { Player, BattingOrderConfig, UserSettings, TeamInfo } from './StorageService';
 import StrategyInfoModal from './StrategyInfoModal';
-import PDFCustomizationModal, { PDFExportOptions } from './PDFCustomizationModal';
-import PDFPreviewModal from './PDFPreviewModal';
 import ConfidenceInfoModal from './ConfidenceInfoModal';
+import CanvasPreviewModal from './CanvasPreviewModal';
 
 const getConfidenceIcon = (iconType: string) => {
   switch (iconType) {
@@ -119,7 +121,7 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
       <Group justify="space-between" align="center">
         <div>
           <Text fw={500} size="sm" c={isInOrder ? 'dimmed' : 'blue'}>
-            {player.name}
+            {player.name} ({player.fieldingPosition || 'P'})
           </Text>
           <Group gap="xs" mt={4}>
             <Text size="xs" c="dimmed">AVG: {player.avg.toFixed(3)}</Text>
@@ -234,6 +236,7 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
       padding="sm"
       radius="md"
       withBorder
+      data-fielding-position={player.fieldingPosition || 'P'}
     >
       <Group justify="space-between" align="center">
         <Group gap="sm">
@@ -249,10 +252,11 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
           
           <div>
             <Text fw={500} size="md">
-              {position}. {player.name}
+              {position}. {player.name} ({player.fieldingPosition || 'P'})
             </Text>
         <Group gap="xs" mt={4}>
           <Text size="sm" c="dimmed">AVG: {player.avg.toFixed(3)}</Text>
+          <Text size="sm" c="dimmed">OBP: {player.obp.toFixed(3)}</Text>
           <Text size="sm" c="dimmed">OPS: {player.ops.toFixed(3)}</Text>
           {!hideConfidenceScore && (
             <Group gap={4} align="center">
@@ -361,9 +365,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   });
   const [showStrategyInfo, setShowStrategyInfo] = useState(false);
   const [showConfidenceInfo, setShowConfidenceInfo] = useState(false);
-  const [showPDFCustomization, setShowPDFCustomization] = useState(false);
-  const [showPDFPreview, setShowPDFPreview] = useState(false);
-  const [pdfOptions, setPdfOptions] = useState<PDFExportOptions | null>(null);
+  const [showCanvasPreview, setShowCanvasPreview] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [savedOrderName, setSavedOrderName] = useState('');
 
@@ -411,7 +413,12 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   };
 
   const generateBattingOrder = () => {
-    if (players.length === 0) return;
+    if (players.length === 0) {
+      toast.error('No players available. Import a CSV or add players manually.', {
+        icon: '⚠️',
+      });
+      return;
+    }
 
     if (algorithm === 'traditional') {
       generateMLBOrder();
@@ -523,6 +530,10 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
 
     onBattingOrderChange(finalOrder);
+    
+    toast.success(`Generated Traditional batting order for ${finalOrder.length} players`, {
+      icon: '⚾',
+    });
   };
 
   const generateJacksCustomLocalLeagueOrder = () => {
@@ -677,6 +688,10 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       .filter((player): player is Player => player !== undefined);
     
     onBattingOrderChange(finalOrder);
+    
+    toast.success(`Generated Situational Analytics order for ${finalOrder.length} players`, {
+      icon: '⚾',
+    });
   };
 
   // Get basic stats penalty (based on total PA)
@@ -747,10 +762,20 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
   const clearOrder = () => {
     onBattingOrderChange([]);
+    
+    toast('Batting order cleared', {
+      icon: '🗑️',
+      duration: 2000,
+    });
   };
 
   const saveOrder = () => {
-    if (!savedOrderName.trim()) return;
+    if (!savedOrderName.trim()) {
+      toast.error('Please enter a name for the batting order', {
+        icon: '⚠️',
+      });
+      return;
+    }
     
     const config: BattingOrderConfig = {
       id: Math.random().toString(36).substr(2, 9),
@@ -763,22 +788,22 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     onSaveBattingOrder(config);
     setSavedOrderName('');
     setShowSaveDialog(false);
+    
+    toast.success(`Saved batting order: "${config.name}"`, {
+      icon: '💾',
+    });
   };
 
   const loadOrder = (config: BattingOrderConfig) => {
     onBattingOrderChange(config.players);
     setAlgorithm(config.strategy === 'mlb-level' ? 'traditional' : 'situational');
+    
+    toast.success(`Loaded batting order: "${config.name}"`, {
+      icon: '📋',
+    });
   };
 
-  const exportToPDF = async () => {
-    setShowPDFCustomization(true);
-  };
 
-  const handlePDFExport = async (options: PDFExportOptions) => {
-    setPdfOptions(options);
-    setShowPDFCustomization(false);
-    setShowPDFPreview(true);
-  };
 
   const availablePlayers = players.filter(player => 
     !battingOrder.find(p => p.id === player.id)
@@ -788,68 +813,118 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     <Stack gap="md">
 
       {/* Algorithm Selection */}
-      <Paper p="md" withBorder>
+      <Paper p="md" withBorder data-section="strategy">
         <Stack gap="md">
           <Group justify="center">
             <Title order={2}>Strategy</Title>
           </Group>
-          <Group justify="space-between" align="center">
-            <Group gap="md" justify="center" style={{ flex: 1 }}>
-              <Button
-                variant="filled"
-                color={algorithm === 'traditional' ? 'blue' : 'gray'}
-                onClick={() => setAlgorithm('traditional')}
-                size="md"
-                radius="xl"
-                leftSection={<img src="/mlblogo.png" alt="MLB" width={32} height={24} style={{ objectFit: 'contain' }} />}
-                style={{
-                  filter: algorithm === 'traditional' ? 'none' : 'grayscale(100%)',
-                  opacity: algorithm === 'traditional' ? 1 : 0.6
-                }}
-              >
-                Modern Baseball Consensus
-              </Button>
-              <Button
-                variant="filled"
-                color={algorithm === 'situational' ? 'red' : 'gray'}
-                onClick={() => setAlgorithm('situational')}
-                size="md"
-                radius="xl"
-                leftSection={<img src="/situational2.jpg" alt="Situational" width={32} height={24} style={{ objectFit: 'contain' }} />}
-                style={{
-                  filter: algorithm === 'situational' ? 'none' : 'grayscale(100%)',
-                  opacity: algorithm === 'situational' ? 1 : 0.6
-                }}
-              >
-                Situational Analytics
-              </Button>
-              <ActionIcon
-                variant="filled"
-                color="gray"
-                onClick={() => setShowStrategyInfo(true)}
-                size="lg"
-              >
-                ?
-              </ActionIcon>
-            </Group>
-            <Button
-              leftSection={<IconDownload size={14} />}
-              onClick={exportToPDF}
-              color="green"
-              radius="xl"
-              size="sm"
-            >
-              Export PDF
-            </Button>
+          <Group justify="center" align="center" style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              {/* Graphics above toggle - with manual alignment controls */}
+              <div style={{ 
+                position: 'relative', 
+                width: '100%', 
+                display: 'flex', 
+                justifyContent: 'center',
+                marginBottom: '8px',
+                height: '42px'
+              }}>
+                <div style={{ 
+                  position: 'relative',
+                  display: 'flex',
+                  gap: '0px',
+                  width: '320px', // Match SegmentedControl width
+                  alignItems: 'center',
+                  marginRight: '12px' // Account for the gap between SegmentedControl and ActionIcon
+                }}>
+                  <div style={{ 
+                    width: '160px', // Fixed width
+                    display: 'flex', 
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    opacity: algorithm === 'traditional' ? 1 : 0.4,
+                    filter: algorithm === 'traditional' ? 'none' : 'grayscale(100%)',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <img src="/mlblogo.png" alt="MLB" width={56} height={42} style={{ objectFit: 'contain' }} />
+                  </div>
+                  <div style={{ 
+                    width: '160px', // Fixed width
+                    display: 'flex', 
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    opacity: algorithm === 'situational' ? 1 : 0.4,
+                    filter: algorithm === 'situational' ? 'none' : 'grayscale(100%)',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <img src="/situational2.jpg" alt="Situational" width={56} height={42} style={{ objectFit: 'contain' }} />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Traditional Mantine Toggle */}
+              <Group gap="md" justify="center">
+                <SegmentedControl
+                  value={algorithm}
+                  onChange={(value) => setAlgorithm(value as 'traditional' | 'situational')}
+                  data={[
+                    { value: 'traditional', label: 'Modern Baseball' },
+                    { value: 'situational', label: 'Situational Analytics' }
+                  ]}
+                  size="lg"
+                  color="blue"
+                  radius="xl"
+                />
+                
+                <ActionIcon
+                  variant="filled"
+                  color="gray"
+                  onClick={() => setShowStrategyInfo(true)}
+                  size="lg"
+                >
+                  ?
+                </ActionIcon>
+              </Group>
+            </div>
+            <div style={{ position: 'absolute', right: 0 }}>
+              <PDFExportButton
+                battingOrder={battingOrder}
+                teamInfo={teamInfo}
+                algorithm={algorithm}
+                showFieldingPositions={showFieldingDropdowns}
+              />
+            </div>
           </Group>
         </Stack>
       </Paper>
 
       {/* Batting Order */}
-      <Paper p="md" withBorder>
+      <Paper p="md" withBorder data-section="batting-order" data-team-name={teamInfo.name || "BATTING ORDER"} data-team-location={teamInfo.location || ""}>
+        {/* Print header with logo and team info */}
+        <Group justify="center" align="center" mb="0" style={{ display: 'none', gap: '0px' }} className="print-header">
+          {teamInfo.logo && (
+            <Image
+              src={teamInfo.logo}
+              alt={`${teamInfo.name} logo`}
+              w={200}
+              h={200}
+              fit="contain"
+              style={{
+                borderRadius: '20px',
+                backgroundColor: 'transparent',
+                padding: '0px',
+                margin: '0px'
+              }}
+            />
+          )}
+          <Text size="xl" fw={700} c="dark" style={{ margin: '0px' }}>
+            {teamInfo.location && `${teamInfo.location} `}{teamInfo.name || 'BATTING ORDER'}
+          </Text>
+        </Group>
+        
         <Group justify="space-between" align="center" mb="md">
           <div>
-            <Title order={4}>Batting Order</Title>
+            <Title order={2}>Batting Order</Title>
             <Text size="sm" c="dimmed">{battingOrder.length} players</Text>
           </div>
           <Group>
@@ -945,7 +1020,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
       {/* Available Players */}
       {availablePlayers.length > 0 && (
-        <Paper p="md" withBorder>
+        <Paper p="md" withBorder data-section="available-players">
           <Title order={4} mb="md">Available Players</Title>
           <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="sm">
             {availablePlayers.map(player => (
@@ -964,7 +1039,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
       {/* Saved Orders */}
       {savedBattingOrders.length > 0 && (
-        <Paper p="md" withBorder>
+        <Paper p="md" withBorder data-section="saved-orders">
           <Group justify="space-between" align="center" mb="md">
             <Title order={4}>Saved Batting Orders</Title>
             <Button
@@ -1014,26 +1089,18 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         onClose={() => setShowConfidenceInfo(false)}
       />
 
-
-      <PDFCustomizationModal
-        isOpen={showPDFCustomization}
-        onClose={() => setShowPDFCustomization(false)}
-        onExport={handlePDFExport}
-        teamName={teamInfo.name}
+      <CanvasPreviewModal
+        isOpen={showCanvasPreview}
+        onClose={() => setShowCanvasPreview(false)}
+        onBack={() => setShowCanvasPreview(false)}
+        battingOrder={battingOrder}
+        benchPlayers={availablePlayers}
+        teamInfo={teamInfo}
       />
 
-      {pdfOptions && (
-        <PDFPreviewModal
-          isOpen={showPDFPreview}
-          onClose={() => setShowPDFPreview(false)}
-          onBack={() => setShowPDFPreview(false)}
-          onExport={handlePDFExport}
-          battingOrder={battingOrder}
-          teamInfo={teamInfo}
-          pdfOptions={pdfOptions}
-          playerPositions={{}}
-        />
-      )}
+
+
+
 
       <Modal
         opened={showSaveDialog}
@@ -1063,8 +1130,6 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
           </Group>
         </Stack>
       </Modal>
-
-
 
     </Stack>
   );

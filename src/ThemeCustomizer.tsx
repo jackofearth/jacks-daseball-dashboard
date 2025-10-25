@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Title,
@@ -54,6 +54,39 @@ const ThemeCustomizer: React.FC<ThemeCustomizerProps> = ({
     green: { primary: '#28a745', secondary: '#6c757d', accent: '#17a2b8' },
     purple: { primary: '#6f42c1', secondary: '#6c757d', accent: '#fd7e14' }
   };
+
+  // Update form data when teamInfo changes
+  useEffect(() => {
+    setFormData({
+      teamName: teamInfo.name || '',
+      location: teamInfo.location || ''
+    });
+    setLogoPreview(teamInfo.logo || null);
+  }, [teamInfo]);
+
+  // Update color scheme when themeSettings changes
+  useEffect(() => {
+    if (themeSettings?.colors) {
+      const colors = themeSettings.colors;
+      // Check if colors match any predefined scheme
+      const matchingScheme = Object.keys(colorSchemes).find(scheme => {
+        const schemeColors = colorSchemes[scheme as keyof typeof colorSchemes];
+        return schemeColors.primary === colors.primary && 
+               schemeColors.secondary === colors.secondary && 
+               schemeColors.accent === colors.accent;
+      });
+      
+      if (matchingScheme) {
+        setSelectedColorScheme(matchingScheme);
+      } else {
+        setSelectedColorScheme('custom');
+        setCustomColors({
+          primary: colors.primary,
+          secondary: colors.secondary
+        });
+      }
+    }
+  }, [themeSettings]);
 
   // Basic colors for custom selection
   const basicColors = [

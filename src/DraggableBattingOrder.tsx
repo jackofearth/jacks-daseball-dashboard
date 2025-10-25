@@ -25,7 +25,7 @@ import StrategyInfoModal from './StrategyInfoModal';
 import ConfidenceSymbolsModal from './ConfidenceSymbolsModal';
 import BattingOrderPDF from './BattingOrderPDF';
 import PDFCustomizationModal, { PDFExportOptions } from './PDFCustomizationModal';
-import PDFPreviewModal from './PDFPreviewModal';
+// PDFPreviewModal removed - using direct Canvas export
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -140,9 +140,9 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
           )}
         </div>
       </div>
-      {(player.avg > 0 || player.ops > 0) && (
+      {(player.avg > 0 || player.obp > 0 || player.ops > 0) && (
         <div style={{ fontSize: '0.8em', color: 'var(--theme-secondary)' }}>
-          AVG: {player.avg.toFixed(3)} | OPS: {player.ops.toFixed(3)}
+          AVG: {player.avg.toFixed(3)} | OBP: {player.obp.toFixed(3)} | OPS: {player.ops.toFixed(3)}
         </div>
       )}
     </div>
@@ -1219,7 +1219,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                     }}
                     title="Export batting order as PDF"
                   >
-                    {isExportingPDF ? 'Generating PDF...' : '📄 Export PDF'}
+                    {isExportingPDF ? 'Generating PDF...' : '📄 Export Lineup PDF'}
                   </button>
                 </>
               )}
@@ -1442,17 +1442,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         teamName={teamInfo?.name || 'My Team'}
       />
 
-      {/* PDF Preview Modal */}
-      <PDFPreviewModal
-        isOpen={showPDFPreview}
-        onClose={() => setShowPDFPreview(false)}
-        onBack={handleBackToCustomization}
-        onExport={handlePDFPreviewExport}
-        battingOrder={battingOrder}
-        teamInfo={teamInfo}
-        pdfOptions={pdfOptions}
-        playerPositions={playerPositions}
-      />
+      {/* PDF Preview Modal removed - using direct Canvas export */}
     </div>
   );
 };

@@ -15,7 +15,8 @@ import {
   Divider,
   Paper,
   Alert,
-  Center
+  Center,
+  Tooltip
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
@@ -126,10 +127,10 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
         const ab = abColumn ? parseFloat(row[abColumn]) || 0 : 0;
         const pa = paColumn ? parseFloat(row[paColumn]) || 0 : 0;
         
-        // Get raw stats for OBP calculation
-        const hits = parseFloat(row[10]) || 0;  // H
-        const walks = parseFloat(row[17]) || 0; // BB
-        const hbp = parseFloat(row[20]) || 0;   // HBP
+        // Get raw stats for OBP calculation using named columns
+        const hits = parseFloat(row['H']) || 0;  // H
+        const walks = parseFloat(row['BB']) || 0; // BB
+        const hbp = parseFloat(row['HBP']) || 0;   // HBP
         
         // Calculate OBP from raw stats (override CSV value)
         const obp = pa > 0 ? (hits + walks + hbp) / pa : 0;
@@ -137,7 +138,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
         const slg = slgColumn ? parseFloat(row[slgColumn]) || 0 : 0;
         const ops = opsColumn ? parseFloat(row[opsColumn]) || 0 : (obp + slg);
         const sb = sbColumn ? parseFloat(row[sbColumn]) || 0 : 0;
-        const cs = parseFloat(row[27]) || 0;  // CS (Caught Stealing)
+        const cs = parseFloat(row['CS']) || 0;  // CS (Caught Stealing)
         const sb_percent = sbPercentColumn ? parseFloat(row[sbPercentColumn]) || 0 : 0;
         const bb_k = bbKColumn ? parseFloat(row[bbKColumn]) || 0 : 0;
         const contact_percent = contactPercentColumn ? parseFloat(row[contactPercentColumn]) || 0 : 0;
@@ -578,22 +579,26 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => 
       <Group justify="space-between" mb="xs">
         <Text fw={500} size="lg">{player.name}</Text>
         <Group gap="xs">
-          <ActionIcon 
-            color="blue" 
-            variant="light" 
-            onClick={onEdit}
-            size="sm"
-          >
-            <IconEdit size={14} />
-          </ActionIcon>
-          <ActionIcon 
-            color="red" 
-            variant="light" 
-            onClick={onDelete}
-            size="sm"
-          >
-            <IconTrash size={14} />
-          </ActionIcon>
+          <Tooltip label="Edit player" position="top">
+            <ActionIcon 
+              color="blue" 
+              variant="light" 
+              onClick={onEdit}
+              size="sm"
+            >
+              <IconEdit size={14} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Delete player" position="top">
+            <ActionIcon 
+              color="red" 
+              variant="light" 
+              onClick={onDelete}
+              size="sm"
+            >
+              <IconTrash size={14} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Group>
       

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Container, Loader, Center, Text, Alert, Stack } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
+import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import './App.css';
 import { PlayerManager } from './PlayerManagerMantine';
 import { Player, ThemeSettings } from './StorageService';
@@ -23,7 +25,11 @@ function App() {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   const [showClearPlayersDialog, setShowClearPlayersDialog] = useState(false);
-  const [activeSection, setActiveSection] = useState<'players' | 'lineup' | 'help'>('players');
+  const [activeSection, setActiveSection] = useState<'players' | 'lineup' | 'help'>(() => {
+    // Get active section from localStorage or default to 'players'
+    const saved = localStorage.getItem('activeSection');
+    return (saved as 'players' | 'lineup' | 'help') || 'players';
+  });
 
   // Auto-load data on app start
   useEffect(() => {
@@ -95,6 +101,11 @@ function App() {
 
   const handleCSVImport = (csvData: CSVFile) => {
     setCsvFiles(prev => [...prev, csvData]);
+    
+    toast.success(`Successfully imported ${csvData.playerCount} players!`, {
+      icon: '✅',
+      duration: 5000,
+    });
   };
 
   const handleTeamInfoChange = (newTeamInfo: TeamInfo) => {
@@ -112,8 +123,13 @@ function App() {
     setShowClearPlayersDialog(true);
   };
 
+  const handleSectionChange = (section: 'players' | 'lineup' | 'help') => {
+    setActiveSection(section);
+    localStorage.setItem('activeSection', section);
+  };
+
   const handleNavigateToHelp = () => {
-    setActiveSection('help');
+    handleSectionChange('help');
     // Add a small delay to ensure the help page renders before scrolling
     setTimeout(() => {
       const strategiesSection = document.getElementById('strategies');
@@ -149,14 +165,48 @@ function App() {
     root.style.setProperty('--theme-accent', colors.accent);
   }, [settings.customTheme]);
 
+  // Apply theme colors on initial load after data is loaded
+  useEffect(() => {
+    if (!isLoading && settings.customTheme?.colors) {
+      const root = document.documentElement;
+      const colors = settings.customTheme.colors;
+      root.style.setProperty('--theme-primary', colors.primary);
+      root.style.setProperty('--theme-secondary', colors.secondary);
+      root.style.setProperty('--theme-accent', colors.accent);
+    }
+  }, [isLoading, settings.customTheme]);
+
   return (
     <Router>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'var(--mantine-color-dark-7)',
+            color: '#fff',
+            border: '1px solid var(--mantine-color-yellow-4)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#4CAF50',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#f44336',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <Routes>
         <Route path="/" element={
           <AppLayout 
             teamInfo={teamInfo}
             activeSection={activeSection}
-            onSectionChange={setActiveSection}
+            onSectionChange={handleSectionChange}
             onCustomizeTheme={() => setShowThemeCustomizer(true)}
           >
             <Container size="xl">
