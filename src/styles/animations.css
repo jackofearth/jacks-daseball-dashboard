@@ -1,0 +1,21 @@
+/* Animated gradient border for active batting order */
+.batting-order-active {
+  position: relative;
+  border: 2px solid transparent;
+  background: linear-gradient(#1a1a1a, #1a1a1a) padding-box,
+              linear-gradient(90deg, #9C27B0, #FF9800, #9C27B0) border-box;
+  animation: gradient-border-shift 3s ease infinite;
+  background-size: 200% 100%;
+}
+
+@keyframes gradient-border-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

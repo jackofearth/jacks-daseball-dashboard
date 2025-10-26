@@ -1,9 +1,3 @@
-/* CSS Custom Properties for Theme Colors */
-:root {
-  --theme-primary: #007bff;
-  --theme-secondary: #6c757d;
-  --theme-accent: #28a745;
-}
 
 /* Cool Sports Font for Headings */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
@@ -224,8 +218,8 @@ input[type="number"] {
 /* Ensure good contrast for yellow backgrounds */
 .theme-bg-yellow {
   background-color: #ffc107;
-  color: #000; /* Black text on yellow background */
 }
+
 
 .theme-bg-yellow-light {
   background-color: color-mix(in srgb, #ffc107 10%, white);

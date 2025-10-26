@@ -411,10 +411,24 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
   return (
     <Stack gap="md">
       {/* Header */}
-      <Paper p="md" withBorder>
+      <Paper p="md" withBorder style={{
+        background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
+        borderColor: 'rgba(255, 193, 7, 0.2)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
         <Stack gap="md">
           <Group justify="center">
-            <Title order={2}>Player Management</Title>
+            <Title 
+              order={2}
+              style={{
+                color: '#FFC107',
+                textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+                letterSpacing: '0.5px',
+              }}
+            >
+              Player Management
+            </Title>
           </Group>
           <Group justify="space-between" align="center">
             <Text size="sm" c="dimmed">
@@ -428,14 +442,34 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
               variant="light"
               color="blue"
               radius="xl"
+              style={{
+                background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
+                color: '#000',
+                fontWeight: 600,
+                boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)',
+              }}
             >
               Import CSV
             </Button>
             <Button
               leftSection={<IconPlus size={16} />}
               onClick={openAddPlayer}
-              color="green"
               radius="xl"
+              style={{
+                background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
+                color: '#000',
+                fontWeight: 700,
+                boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)',
+                transition: 'all 0.3s ease',
+              }}
+              styles={{
+                root: {
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 20px rgba(255, 193, 7, 0.6)',
+                  },
+                },
+              }}
             >
               Add Player
             </Button>
@@ -509,6 +543,16 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
               onClick={handleNameSubmit}
               disabled={!newPlayerName.trim()}
               radius="xl"
+              style={{
+                background: newPlayerName.trim() 
+                  ? 'linear-gradient(45deg, #FFC107, #FFD54F)'
+                  : undefined,
+                color: newPlayerName.trim() ? '#000' : undefined,
+                fontWeight: 600,
+                boxShadow: newPlayerName.trim() 
+                  ? '0 2px 10px rgba(255, 193, 7, 0.3)' 
+                  : undefined,
+              }}
             >
               Next
             </Button>
@@ -766,7 +810,15 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => 
           <Button variant="light" onClick={onCancel} radius="xl">
             Cancel
           </Button>
-          <Button type="submit">
+          <Button 
+            type="submit"
+            style={{
+              background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
+              color: '#000',
+              fontWeight: 600,
+              boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)',
+            }}
+          >
             Save Player
           </Button>
         </Group>
@@ -888,7 +940,15 @@ const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, o
           <Button variant="light" onClick={() => onSave({})}>
             Skip Stats
           </Button>
-          <Button type="submit">
+          <Button 
+            type="submit"
+            style={{
+              background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
+              color: '#000',
+              fontWeight: 600,
+              boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)',
+            }}
+          >
             Add Player
           </Button>
         </Group>

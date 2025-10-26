@@ -80,6 +80,7 @@ interface DraggableBattingOrderProps {
   onClearAllPlayers: () => void;
   teamInfo: TeamInfo;
   onNavigateToHelp: () => void;
+  onOpenCustomization?: () => void;
 }
 
 interface SortablePlayerCardProps {
@@ -171,6 +172,14 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
                   size="xs"
                   color={confidence.color}
                   variant="light"
+                  radius="xl"
+                  style={{
+                    boxShadow: confidence.color === 'green' 
+                      ? '0 0 8px rgba(76, 175, 80, 0.4)'
+                      : confidence.color === 'yellow'
+                      ? '0 0 8px rgba(255, 193, 7, 0.4)'
+                      : '0 0 8px rgba(255, 152, 0, 0.4)',
+                  }}
                 >
                   {getConfidenceIcon(confidence.icon)}
                 </ThemeIcon>
@@ -303,6 +312,14 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
                 size="xs"
                 color={confidence.color}
                 variant="light"
+                radius="xl"
+                style={{
+                  boxShadow: confidence.color === 'green' 
+                    ? '0 0 8px rgba(76, 175, 80, 0.4)'
+                    : confidence.color === 'yellow'
+                    ? '0 0 8px rgba(255, 193, 7, 0.4)'
+                    : '0 0 8px rgba(255, 152, 0, 0.4)',
+                }}
               >
                 {getConfidenceIcon(confidence.icon)}
               </ThemeIcon>
@@ -352,7 +369,8 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   onSettingsChange,
   onClearAllPlayers,
   teamInfo,
-  onNavigateToHelp
+  onNavigateToHelp,
+  onOpenCustomization
 }) => {
   const [algorithm, setAlgorithm] = useState<'traditional' | 'situational'>('traditional');
   const [showFieldingDropdowns, setShowFieldingDropdowns] = useState(() => {
@@ -813,10 +831,15 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     <Stack gap="md">
 
       {/* Algorithm Selection */}
-      <Paper p="md" withBorder data-section="strategy">
+      <Paper p="md" withBorder data-section="strategy" style={{
+        background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
+        borderColor: 'rgba(255, 193, 7, 0.2)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
         <Stack gap="md">
           <Group justify="center">
-            <Title order={2}>Strategy</Title>
+            <Title order={1} size="h1">Strategy</Title>
           </Group>
           <Group justify="center" align="center" style={{ position: 'relative' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -892,6 +915,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 teamInfo={teamInfo}
                 algorithm={algorithm}
                 showFieldingPositions={showFieldingDropdowns}
+                onOpenCustomization={onOpenCustomization}
               />
             </div>
           </Group>
@@ -899,7 +923,14 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       </Paper>
 
       {/* Batting Order */}
-      <Paper p="md" withBorder data-section="batting-order" data-team-name={teamInfo.name || "BATTING ORDER"} data-team-location={teamInfo.location || ""}>
+      <Paper 
+        p="md" 
+        withBorder 
+        data-section="batting-order" 
+        data-team-name={teamInfo.name || "BATTING ORDER"} 
+        data-team-location={teamInfo.location || ""}
+        className={battingOrder.length > 0 ? 'batting-order-active' : ''}
+      >
         {/* Print header with logo and team info */}
         <Group justify="center" align="center" mb="0" style={{ display: 'none', gap: '0px' }} className="print-header">
           {teamInfo.logo && (
@@ -924,16 +955,45 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         
         <Group justify="space-between" align="center" mb="md">
           <div>
-            <Title order={2}>Batting Order</Title>
+            <Title 
+              order={2} 
+              mb="md"
+              style={{
+                color: '#FFC107',
+                textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+                letterSpacing: '0.5px',
+              }}
+            >
+              Batting Order
+            </Title>
             <Text size="sm" c="dimmed">{battingOrder.length} players</Text>
           </div>
           <Group>
             <Button
               leftSection={<IconRefresh size={16} />}
               onClick={generateBattingOrder}
-              disabled={players.length === 0}
-              color="green"
+              size="lg"
               radius="xl"
+              disabled={players.length === 0}
+              style={{
+                background: players.length > 0 
+                  ? 'linear-gradient(45deg, #FFC107, #FFD54F)'
+                  : undefined,
+                color: players.length > 0 ? '#000' : undefined,
+                fontWeight: 700,
+                boxShadow: players.length > 0 
+                  ? '0 4px 15px rgba(255, 193, 7, 0.4)' 
+                  : undefined,
+                transition: 'all 0.3s ease',
+              }}
+              styles={{
+                root: {
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 20px rgba(255, 193, 7, 0.6)',
+                  },
+                },
+              }}
             >
               Generate Batting Order
             </Button>
@@ -1021,7 +1081,17 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       {/* Available Players */}
       {availablePlayers.length > 0 && (
         <Paper p="md" withBorder data-section="available-players">
-          <Title order={4} mb="md">Available Players</Title>
+          <Title 
+            order={4} 
+            mb="md"
+            style={{
+              color: '#FFC107',
+              textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+              letterSpacing: '0.5px',
+            }}
+          >
+            Available Players
+          </Title>
           <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="sm">
             {availablePlayers.map(player => (
               <AvailablePlayerCard
@@ -1041,7 +1111,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       {savedBattingOrders.length > 0 && (
         <Paper p="md" withBorder data-section="saved-orders">
           <Group justify="space-between" align="center" mb="md">
-            <Title order={4}>Saved Batting Orders</Title>
+            <Title 
+              order={4}
+              style={{
+                color: '#FFC107',
+                textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+                letterSpacing: '0.5px',
+              }}
+            >
+              Saved Batting Orders
+            </Title>
             <Button
               leftSection={<IconPlus size={16} />}
               onClick={() => setShowSaveDialog(true)}

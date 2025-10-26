@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Container,
   Paper,
@@ -35,28 +35,66 @@ import {
 } from '@tabler/icons-react';
 
 const HelpPage: React.FC = () => {
+  useEffect(() => {
+    const handleScroll = () => {
+      const btn = document.getElementById('back-to-top-btn');
+      if (btn) {
+        btn.style.display = window.scrollY > 300 ? 'block' : 'none';
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <>
-      <Affix position={{ top: 20, right: 20 }}>
+      <Affix position={{ bottom: 20, right: 20 }}>
         <Button
+          id="back-to-top-btn"
           variant="filled"
           color="blue"
           size="sm"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          style={{
+            display: 'none', // Hidden by default, shown via scroll handler
+          }}
         >
-          Back to Top
+          ↑ Top
         </Button>
       </Affix>
       <Container size="xl" py="xl">
         <Stack gap="xl">
         {/* Header */}
-        <Paper p="xl" withBorder>
+        <Paper p="xl" withBorder style={{
+          background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
+          borderColor: 'rgba(255, 193, 7, 0.2)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
           <Group justify="center" mb="md">
-            <ThemeIcon size="xl" radius="xl" color="blue" variant="light">
+            <ThemeIcon 
+              size="xl" 
+              radius="xl" 
+              color="blue" 
+              variant="light"
+              style={{
+                boxShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+              }}
+            >
               <IconHelp size={32} />
             </ThemeIcon>
           </Group>
-          <Title order={1} ta="center" mb="md">
+          <Title 
+            order={1} 
+            ta="center" 
+            mb="md"
+            style={{
+              color: '#FFC107',
+              textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+              letterSpacing: '0.5px',
+            }}
+          >
             Batting Order Help
           </Title>
           <Text ta="center" c="dimmed" size="lg">
@@ -65,8 +103,19 @@ const HelpPage: React.FC = () => {
         </Paper>
 
         {/* Quick Navigation */}
-        <Card withBorder p="lg">
-          <Title order={2} mb="md" c="blue">
+        <Card withBorder p="lg" style={{
+          background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.05) 0%, rgba(255, 152, 0, 0.05) 100%)',
+          borderColor: 'rgba(255, 193, 7, 0.15)',
+        }}>
+          <Title 
+            order={2} 
+            mb="md" 
+            style={{
+              color: '#FFC107',
+              textShadow: '0 0 10px rgba(255, 193, 7, 0.3)',
+              letterSpacing: '0.3px',
+            }}
+          >
             Quick Navigation
           </Title>
           <Stack gap="xs">
@@ -79,12 +128,6 @@ const HelpPage: React.FC = () => {
                 label="Quick Start Guide" 
                 href="#quick-start"
                 leftSection={<IconCheck size={14} />}
-              />
-              <NavLink 
-                label="Manual Adjustments" 
-                href="#manual-adjustments"
-                leftSection={<IconGripVertical size={14} />}
-                c="blue"
               />
               <NavLink 
                 label="FAQ" 
@@ -123,6 +166,12 @@ const HelpPage: React.FC = () => {
                 leftSection={<IconBolt size={14} />}
                 c="orange"
               />
+              <NavLink 
+                label="Manual Adjustments" 
+                href="#manual-adjustments"
+                leftSection={<IconGripVertical size={14} />}
+                c="blue"
+              />
             </NavLink>
             
             <NavLink 
@@ -158,7 +207,7 @@ const HelpPage: React.FC = () => {
             </List.Item>
             <List.Item icon={<IconChartBar size={16} />}>
               <Text fw={500}>Export for game day</Text>
-              <Text size="sm" c="dimmed">Export a PDF or print your professional lineup card</Text>
+              <Text size="sm" c="dimmed">Export a PDF lineup card</Text>
             </List.Item>
           </List>
           
@@ -167,42 +216,6 @@ const HelpPage: React.FC = () => {
               <Text fw={500} component="span">New to the app?</Text> Start with Modern Baseball Consensus strategy - it's data-driven and proven.
             </Text>
           </Alert>
-        </Card>
-
-        {/* Manual Adjustments */}
-        <Card id="manual-adjustments" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
-          <Group mb="md">
-            <ThemeIcon size="lg" radius="md" color="blue" variant="light">
-              <IconTarget size={20} />
-            </ThemeIcon>
-            <Title order={2} c="blue">Making Manual Adjustments</Title>
-          </Group>
-          
-          <Text size="lg" mb="md" fw={500}>
-            The algorithms are smart, but you know your team best.
-          </Text>
-          
-          <Stack gap="md">
-            <Box>
-              <Title order={3} mb="sm">Common Override Situations:</Title>
-              <List size="md" spacing="xs">
-                <List.Item>Player returning from injury (exclude them until they're back to form)</List.Item>
-                <List.Item>Matchup advantages (lefty vs righty pitcher preferences)</List.Item>
-                <List.Item>Player availability (can't make today's game)</List.Item>
-                <List.Item>Team chemistry (separating players who don't work well together)</List.Item>
-                <List.Item>Defensive positioning needs</List.Item>
-              </List>
-            </Box>
-            
-            <Box>
-              <Title order={3} mb="sm">How to Override:</Title>
-              <List size="md" spacing="xs">
-                <List.Item><Text fw={500} component="span">Drag and drop</Text> players to different batting positions</List.Item>
-                <List.Item><Text fw={500} component="span">Exclude players</Text> using the ✕ button (removes from algorithm completely)</List.Item>
-                <List.Item><Text fw={500} component="span">Manual additions</Text> - click their name at the bottom to add back excluded players</List.Item>
-              </List>
-            </Box>
-          </Stack>
         </Card>
 
         {/* FAQ */}
@@ -301,7 +314,17 @@ const HelpPage: React.FC = () => {
         <Divider />
 
         {/* Strategy Sections */}
-        <Title id="strategies" order={1} ta="center" mb="xl">
+        <Title 
+          id="strategies" 
+          order={1} 
+          ta="center" 
+          mb="xl"
+          style={{
+            color: '#FFC107',
+            textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+            letterSpacing: '0.5px',
+          }}
+        >
           Batting Order Strategies
         </Title>
 
@@ -413,6 +436,42 @@ const HelpPage: React.FC = () => {
             <Text size="sm" c="dimmed">(Under 4 plate appearances): Not enough data to make any reliable assessment - these players are filtered out of the batting order by default, but can be manually added back</Text>
           </Group>
         </Stack>
+        </Card>
+
+        {/* Manual Adjustments */}
+        <Card id="manual-adjustments" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
+          <Group mb="md">
+            <ThemeIcon size="lg" radius="md" color="blue" variant="light">
+              <IconTarget size={20} />
+            </ThemeIcon>
+            <Title order={2} c="blue">Making Manual Adjustments</Title>
+          </Group>
+          
+          <Text size="lg" mb="md" fw={500}>
+            The algorithms are smart, but you know your team best.
+          </Text>
+          
+          <Stack gap="md">
+            <Box>
+              <Title order={3} mb="sm">Common Override Situations:</Title>
+              <List size="md" spacing="xs">
+                <List.Item>Player returning from injury (exclude them until they're back to form)</List.Item>
+                <List.Item>Matchup advantages (lefty vs righty pitcher preferences)</List.Item>
+                <List.Item>Player availability (can't make today's game)</List.Item>
+                <List.Item>Team chemistry (separating players who don't work well together)</List.Item>
+                <List.Item>Defensive positioning needs</List.Item>
+              </List>
+            </Box>
+            
+            <Box>
+              <Title order={3} mb="sm">How to Override:</Title>
+              <List size="md" spacing="xs">
+                <List.Item><Text fw={500} component="span">Drag and drop</Text> players to different batting positions</List.Item>
+                <List.Item><Text fw={500} component="span">Exclude players</Text> using the ✕ button (removes from algorithm completely)</List.Item>
+                <List.Item><Text fw={500} component="span">Manual additions</Text> - click their name at the bottom to add back excluded players</List.Item>
+              </List>
+            </Box>
+          </Stack>
         </Card>
 
         {/* Baseball Stats Glossary */}

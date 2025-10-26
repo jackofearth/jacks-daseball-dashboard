@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Group, Button, Stack, Paper, TextInput, Divider, Title, Image, Text } from '@mantine/core';
 import { IconPrinter, IconFileDownload, IconArrowLeft, IconEdit } from '@tabler/icons-react';
 import { Player, TeamInfo } from './StorageService';
@@ -29,14 +29,7 @@ const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  // Generate canvas preview when modal opens or data changes
-  useEffect(() => {
-    if (isOpen && battingOrder.length > 0) {
-      generatePreview();
-    }
-  }, [isOpen, battingOrder, customTeamName, customCityName, gameDate]);
-
-  const generatePreview = async () => {
+  const generatePreview = useCallback(async () => {
     setIsGenerating(true);
     try {
       console.log('Generating canvas preview...');
@@ -54,7 +47,14 @@ const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [teamInfo, customTeamName, customCityName, battingOrder, benchPlayers, gameDate]);
+
+  // Generate canvas preview when modal opens or data changes
+  useEffect(() => {
+    if (isOpen && battingOrder.length > 0) {
+      generatePreview();
+    }
+  }, [isOpen, battingOrder, customTeamName, customCityName, gameDate, generatePreview]);
 
   const handleGeneratePDF = async () => {
     setIsGeneratingPDF(true);

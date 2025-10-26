@@ -87,7 +87,7 @@ export async function generateLineupCanvas(options: CanvasLineupOptions): Promis
     exampleCtx.drawImage(exampleImg, 0, 0);
     
     // Get image data to analyze text positioning
-    const imageData = exampleCtx.getImageData(0, 0, exampleCanvas.width, exampleCanvas.height);
+    // const imageData = exampleCtx.getImageData(0, 0, exampleCanvas.width, exampleCanvas.height);
     // Note: imageData could be used for more sophisticated analysis
     console.log('Example image analyzed, dimensions:', exampleCanvas.width, 'x', exampleCanvas.height);
 

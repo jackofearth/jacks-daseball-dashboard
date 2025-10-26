@@ -5,14 +5,16 @@ import { IconAlertCircle } from '@tabler/icons-react';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import './App.css';
+import './styles/animations.css';
 import { PlayerManager } from './PlayerManagerMantine';
-import { Player, ThemeSettings } from './StorageService';
+import { Player } from './StorageService';
 import { DraggableBattingOrder } from './DraggableBattingOrderMantine';
 import StorageService, { TeamData, TeamInfo, CSVFile, BattingOrderConfig, UserSettings } from './StorageService';
-import ThemeCustomizer from './ThemeCustomizer';
 import ConfirmationDialog from './ConfirmationDialog';
 import HelpPage from './HelpPage';
 import { AppLayout } from './AppLayout';
+import TeamCustomizer from './TeamCustomizer';
+import { HeroLanding } from './pages/HeroLanding';
 
 function App() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -23,8 +25,10 @@ function App() {
   const [settings, setSettings] = useState<UserSettings>(StorageService.getDefaultTeamData().settings);
   const [isLoading, setIsLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
-  const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
   const [showClearPlayersDialog, setShowClearPlayersDialog] = useState(false);
+  const [showTeamCustomizer, setShowTeamCustomizer] = useState(false);
+  const [showHeroLanding, setShowHeroLanding] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [activeSection, setActiveSection] = useState<'players' | 'lineup' | 'help'>(() => {
     // Get active section from localStorage or default to 'players'
     const saved = localStorage.getItem('activeSection');
@@ -56,6 +60,14 @@ function App() {
     };
 
     loadTeamData();
+  }, []);
+
+  // Check if user has visited before
+  useEffect(() => {
+    const hasVisited = localStorage.getItem('hasVisitedBefore');
+    if (!hasVisited) {
+      setShowHeroLanding(true);
+    }
   }, []);
 
   // Auto-save data whenever it changes
@@ -112,12 +124,15 @@ function App() {
     setTeamInfo(newTeamInfo);
   };
 
-  const handleThemeChange = (newTheme: ThemeSettings) => {
-    setSettings(prev => ({
-      ...prev,
-      customTheme: newTheme
-    }));
+  const handleGetStarted = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      localStorage.setItem('hasVisitedBefore', 'true');
+      setShowHeroLanding(false);
+      setIsTransitioning(false);
+    }, 500);
   };
+
 
   const handleClearAllPlayers = () => {
     setShowClearPlayersDialog(true);
@@ -146,6 +161,8 @@ function App() {
     }, 100);
   };
 
+
+
   const confirmClearAllPlayers = () => {
     setPlayers([]);
     setBattingOrder([]);
@@ -155,26 +172,18 @@ function App() {
 
 
 
-  // Apply theme colors as CSS custom properties
-  useEffect(() => {
-    const root = document.documentElement;
-    const colors = settings.customTheme?.colors || { primary: '#007bff', secondary: '#6c757d', accent: '#28a745' };
-    
-    root.style.setProperty('--theme-primary', colors.primary);
-    root.style.setProperty('--theme-secondary', colors.secondary);
-    root.style.setProperty('--theme-accent', colors.accent);
-  }, [settings.customTheme]);
 
-  // Apply theme colors on initial load after data is loaded
-  useEffect(() => {
-    if (!isLoading && settings.customTheme?.colors) {
-      const root = document.documentElement;
-      const colors = settings.customTheme.colors;
-      root.style.setProperty('--theme-primary', colors.primary);
-      root.style.setProperty('--theme-secondary', colors.secondary);
-      root.style.setProperty('--theme-accent', colors.accent);
-    }
-  }, [isLoading, settings.customTheme]);
+  // Show hero landing on first visit
+  if (showHeroLanding) {
+    return (
+      <div className={isTransitioning ? 'hero-landing fade-out' : 'hero-landing'}>
+        <HeroLanding 
+          onGetStarted={handleGetStarted}
+          teamInfo={teamInfo}
+        />
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -203,12 +212,12 @@ function App() {
       />
       <Routes>
         <Route path="/" element={
-          <AppLayout 
-            teamInfo={teamInfo}
-            activeSection={activeSection}
-            onSectionChange={handleSectionChange}
-            onCustomizeTheme={() => setShowThemeCustomizer(true)}
-          >
+                <AppLayout 
+                  teamInfo={teamInfo}
+                  activeSection={activeSection}
+                  onSectionChange={handleSectionChange}
+                  onCustomizeTeam={() => setShowTeamCustomizer(true)}
+                >
             <Container size="xl">
               {isLoading ? (
                 <Center h={400}>
@@ -251,6 +260,7 @@ function App() {
                       onClearAllPlayers={handleClearAllPlayers}
                       teamInfo={teamInfo}
                       onNavigateToHelp={handleNavigateToHelp}
+                      onOpenCustomization={() => setShowTeamCustomizer(true)}
                     />
                   )}
                   
@@ -261,15 +271,6 @@ function App() {
               )}
             </Container>
 
-            {/* Theme Customizer Modal */}
-            <ThemeCustomizer
-              teamInfo={teamInfo}
-              themeSettings={settings.customTheme || { colors: { primary: '#007bff', secondary: '#6c757d', accent: '#28a745' } }}
-              onTeamInfoChange={handleTeamInfoChange}
-              onThemeChange={handleThemeChange}
-              onClose={() => setShowThemeCustomizer(false)}
-              isOpen={showThemeCustomizer}
-            />
 
             {/* Confirmation Dialogs */}
             <ConfirmationDialog
@@ -281,6 +282,14 @@ function App() {
               type="warning"
               onConfirm={confirmClearAllPlayers}
               onCancel={() => setShowClearPlayersDialog(false)}
+            />
+
+            {/* Team Customizer Modal */}
+            <TeamCustomizer
+              teamInfo={teamInfo}
+              onTeamInfoChange={handleTeamInfoChange}
+              onClose={() => setShowTeamCustomizer(false)}
+              isOpen={showTeamCustomizer}
             />
           </AppLayout>
         } />

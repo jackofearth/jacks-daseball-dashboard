@@ -11,6 +11,8 @@ export interface TeamInfo {
     secondary: string;
     accent: string;
   };
+  pdfHeaderColor?: string; // Color for PDF header text
+  hasBeenCustomized?: boolean; // Track if user has customized team info
 }
 
 export interface ThemeSettings {
@@ -294,12 +296,14 @@ class StorageService {
   static getDefaultTeamData(): TeamData {
     return {
       teamInfo: {
-        name: 'My Team',
+        name: '',
         colors: {
           primary: '#1e40af',
           secondary: '#f59e0b',
           accent: '#10b981'
-        }
+        },
+        pdfHeaderColor: '#FFC107', // Default to yellow
+        hasBeenCustomized: false
       },
       players: [],
       csvFiles: [],

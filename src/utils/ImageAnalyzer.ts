@@ -67,7 +67,7 @@ export async function analyzeExampleImage(): Promise<{
           ctx.drawImage(exampleImg, 0, 0);
           
           // Get image data for analysis
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          // const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           // Note: imageData could be used for more sophisticated image analysis
           
           console.log('Example image dimensions:', canvas.width, 'x', canvas.height);

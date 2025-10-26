@@ -8,10 +8,10 @@ interface AppLayoutProps {
   teamInfo: TeamInfo;
   activeSection: 'players' | 'lineup' | 'help';
   onSectionChange: (section: 'players' | 'lineup' | 'help') => void;
-  onCustomizeTheme: () => void;
+  onCustomizeTeam: () => void;
 }
 
-export function AppLayout({ children, teamInfo, activeSection, onSectionChange, onCustomizeTheme }: AppLayoutProps) {
+export function AppLayout({ children, teamInfo, activeSection, onSectionChange, onCustomizeTeam }: AppLayoutProps) {
   return (
     <AppShell
       header={{ height: 100 }}
@@ -40,22 +40,17 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
                   <Title order={1} c="white" size="h2">
                     {teamInfo.name || 'Baseball Dashboard'}
                   </Title>
-                  <ActionIcon 
-                    variant="subtle" 
-                    size="lg" 
+                  <ActionIcon
+                    variant="subtle"
+                    size="lg"
                     color="white"
-                    onClick={onCustomizeTheme}
+                    onClick={onCustomizeTeam}
                     style={{ color: 'white' }}
-                    title="Customize Theme"
+                    title="Customize Team Info"
                   >
                     <IconPencil size={20} />
                   </ActionIcon>
                 </Group>
-                {teamInfo.location && (
-                  <Text size="md" c="dimmed" fw={500}>
-                    {teamInfo.location}
-                  </Text>
-                )}
               </div>
             </Group>
           </Group>
