@@ -38,7 +38,9 @@ import {
   SimpleGrid,
   ThemeIcon,
   SegmentedControl,
-  Image
+  Image,
+  Badge,
+  Menu
 } from '@mantine/core';
 import {
   IconGripVertical,
@@ -49,7 +51,8 @@ import {
   IconX,
   IconCheck,
   IconBolt,
-  IconAlertTriangle
+  IconAlertTriangle,
+  IconChevronDown
 } from '@tabler/icons-react';
 import { Player, BattingOrderConfig, UserSettings, TeamInfo } from './StorageService';
 import StrategyInfoModal from './StrategyInfoModal';
@@ -92,6 +95,8 @@ interface SortablePlayerCardProps {
   getAvailablePositions: (playerId: string) => string[];
   onRemove: (playerId: string) => void;
   hideConfidenceScore: boolean;
+  useFieldingNumbers: boolean;
+  showBattingHand: boolean;
 }
 
 interface AvailablePlayerCardProps {
@@ -122,7 +127,7 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
       <Group justify="space-between" align="center">
         <div>
           <Text fw={500} size="sm" c={isInOrder ? 'dimmed' : 'blue'}>
-            {player.name} ({player.fieldingPosition || 'P'})
+            {player.name}
           </Text>
           <Group gap="xs" mt={4}>
             <Text size="xs" c="dimmed">AVG: {player.avg.toFixed(3)}</Text>
@@ -215,7 +220,9 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
   showFieldingDropdowns,
   getAvailablePositions,
   onRemove,
-  hideConfidenceScore
+  hideConfidenceScore,
+  useFieldingNumbers,
+  showBattingHand
 }) => {
   const {
     attributes,
@@ -261,7 +268,16 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
           
           <div>
             <Text fw={500} size="md">
-              {position}. {player.name} ({player.fieldingPosition || 'P'})
+              {position}. {player.name} {showBattingHand && (
+                <Badge 
+                  size="xs" 
+                  variant="filled" 
+                  color={player.battingHand === 'L' ? 'red' : 'blue'}
+                  style={{ marginLeft: '8px' }}
+                >
+                  {player.battingHand || 'R'}
+                </Badge>
+              )}
             </Text>
         <Group gap="xs" mt={4}>
           <Text size="sm" c="dimmed">AVG: {player.avg.toFixed(3)}</Text>
@@ -333,7 +349,17 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
           {showFieldingDropdowns && (
             <Select
               placeholder="Position"
-              value={player.fieldingPosition || ''}
+              value={useFieldingNumbers ? 
+                (player.fieldingPosition ? 
+                  (() => {
+                    const positionMap: { [key: string]: string } = {
+                      'P': '1', 'C': '2', '1B': '3', '2B': '4', '3B': '5',
+                      'SS': '6', 'LF': '7', 'CF': '8', 'RF': '9', 'EH': 'EH', 'DH': 'DH'
+                    };
+                    return positionMap[player.fieldingPosition] || player.fieldingPosition;
+                  })() : ''
+                ) : (player.fieldingPosition || '')
+              }
               onChange={(value) => onFieldingPositionChange(player.id, value || '')}
               data={getAvailablePositions(player.id)}
               size="sm"
@@ -381,11 +407,24 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     const saved = localStorage.getItem('hideConfidenceScore');
     return saved ? JSON.parse(saved) : true;
   });
+  const [useFieldingNumbers, setUseFieldingNumbers] = useState(() => {
+    const saved = localStorage.getItem('useFieldingNumbers');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [showBattingHand, setShowBattingHand] = useState(() => {
+    const saved = localStorage.getItem('showBattingHand');
+    return saved ? JSON.parse(saved) : false;
+  });
   const [showStrategyInfo, setShowStrategyInfo] = useState(false);
   const [showConfidenceInfo, setShowConfidenceInfo] = useState(false);
   const [showCanvasPreview, setShowCanvasPreview] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [savedOrderName, setSavedOrderName] = useState('');
+
+  // Custom close handler for confidence modal that doesn't affect dropdown
+  const handleConfidenceModalClose = () => {
+    setShowConfidenceInfo(false);
+  };
 
   // Save toggle states to localStorage
   React.useEffect(() => {
@@ -396,6 +435,14 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
     localStorage.setItem('hideConfidenceScore', JSON.stringify(hideConfidenceScore));
   }, [hideConfidenceScore]);
 
+  React.useEffect(() => {
+    localStorage.setItem('useFieldingNumbers', JSON.stringify(useFieldingNumbers));
+  }, [useFieldingNumbers]);
+
+  React.useEffect(() => {
+    localStorage.setItem('showBattingHand', JSON.stringify(showBattingHand));
+  }, [showBattingHand]);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -404,7 +451,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   );
 
   const allPositions = [
-    'P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH', 'EH'
+    'P', 'C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'EH', 'DH'
   ];
 
   // Get available positions for a specific player (exclusive except for EH)
@@ -416,11 +463,33 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         .map(p => p.fieldingPosition)
     );
     
-    return allPositions.filter(pos => 
+    const availablePositions = allPositions.filter(pos => 
       pos === 'EH' || // EH is always available
       pos === currentPlayerPosition || // Current player's position is always available
       !usedPositionsForOthers.has(pos) // Position not used by other players
     );
+
+    // If using fielding numbers, convert positions to numbers
+    if (useFieldingNumbers) {
+      return availablePositions.map(pos => {
+        const positionMap: { [key: string]: string } = {
+          'P': '1',
+          'C': '2', 
+          '1B': '3',
+          '2B': '4',
+          '3B': '5',
+          'SS': '6',
+          'LF': '7',
+          'CF': '8',
+          'RF': '9',
+          'EH': 'EH',
+          'DH': 'DH'
+        };
+        return positionMap[pos] || pos;
+      });
+    }
+
+    return availablePositions;
   };
 
   const getConfidenceLevel = (pa: number) => {
@@ -774,7 +843,8 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   const addToOrder = (player: Player) => {
     if (battingOrder.find(p => p.id === player.id)) return;
     
-    const newOrder = [...battingOrder, player];
+    const playerWithBattingHand = { ...player, battingHand: (player.battingHand || 'R') as 'R' | 'L' };
+    const newOrder = [...battingOrder, playerWithBattingHand];
     onBattingOrderChange(newOrder);
   };
 
@@ -915,6 +985,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 teamInfo={teamInfo}
                 algorithm={algorithm}
                 showFieldingPositions={showFieldingDropdowns}
+                useFieldingNumbers={useFieldingNumbers}
                 onOpenCustomization={onOpenCustomization}
               />
             </div>
@@ -1008,28 +1079,84 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
             >
               Clear Order
             </Button>
-            <Switch
-              label="Show Fielding Positions"
-              checked={showFieldingDropdowns}
-              onChange={(event) => setShowFieldingDropdowns(event.currentTarget.checked)}
-              labelPosition="left"
-            />
-            <Group gap="xs">
-              <Switch
-                label="Show Confidence Scores"
-                checked={!hideConfidenceScore}
-                onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
-                labelPosition="left"
-              />
-              <ActionIcon
-                variant="filled"
-                color="gray"
-                onClick={() => setShowConfidenceInfo(true)}
-                size="sm"
-              >
-                ?
-              </ActionIcon>
-            </Group>
+            <Menu shadow="md" width={300}>
+              <Menu.Target>
+                <Button
+                  variant="light"
+                  color="gray"
+                  size="sm"
+                  rightSection={<IconChevronDown size={14} />}
+                >
+                  Advanced Options
+                </Button>
+              </Menu.Target>
+
+              <Menu.Dropdown>
+                <Menu.Item>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      label="Show Fielding Positions"
+                      checked={showFieldingDropdowns}
+                      onChange={(event) => setShowFieldingDropdowns(event.currentTarget.checked)}
+                      labelPosition="right"
+                      size="sm"
+                      w="100%"
+                    />
+                  </div>
+                </Menu.Item>
+                <Menu.Item>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      label="Fielding numbers system"
+                      checked={useFieldingNumbers}
+                      onChange={(event) => setUseFieldingNumbers(event.currentTarget.checked)}
+                      labelPosition="right"
+                      size="sm"
+                      w="100%"
+                    />
+                  </div>
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Group gap="xs" justify="space-between" align="center" wrap="nowrap">
+                      <Switch
+                        label="Show Confidence Scores"
+                        checked={!hideConfidenceScore}
+                        onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
+                        labelPosition="right"
+                        size="sm"
+                      />
+                      <ActionIcon
+                        variant="filled"
+                        color="gray"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowConfidenceInfo(true);
+                        }}
+                        size="xs"
+                        style={{ flexShrink: 0 }}
+                      >
+                        ?
+                      </ActionIcon>
+                    </Group>
+                  </div>
+                </Menu.Item>
+                <Menu.Divider />
+                <Menu.Item>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      label="Show Righty/Lefty"
+                      checked={showBattingHand}
+                      onChange={(event) => setShowBattingHand(event.currentTarget.checked)}
+                      labelPosition="right"
+                      size="sm"
+                      w="100%"
+                    />
+                  </div>
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
           </Group>
         </Group>
 
@@ -1061,8 +1188,27 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                     position={index + 1}
                     getConfidenceLevel={getConfidenceLevel}
                     onFieldingPositionChange={(playerId, position) => {
+                      // Convert number back to position name if using fielding numbers
+                      let actualPosition = position;
+                      if (useFieldingNumbers) {
+                        const numberToPositionMap: { [key: string]: string } = {
+                          '1': 'P',
+                          '2': 'C',
+                          '3': '1B',
+                          '4': '2B',
+                          '5': '3B',
+                          '6': 'SS',
+                          '7': 'LF',
+                          '8': 'CF',
+                          '9': 'RF',
+                          'EH': 'EH',
+                          'DH': 'DH'
+                        };
+                        actualPosition = numberToPositionMap[position] || position;
+                      }
+                      
                       const updatedPlayers = battingOrder.map(p =>
-                        p.id === playerId ? { ...p, fieldingPosition: position } : p
+                        p.id === playerId ? { ...p, fieldingPosition: actualPosition } : p
                       );
                       onBattingOrderChange(updatedPlayers);
                     }}
@@ -1073,6 +1219,8 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                       onBattingOrderChange(updatedOrder);
                     }}
                     hideConfidenceScore={hideConfidenceScore}
+                    useFieldingNumbers={useFieldingNumbers}
+                    showBattingHand={showBattingHand}
                   />
                 ))}
               </Stack>
@@ -1083,7 +1231,17 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
       {/* Available Players */}
       {availablePlayers.length > 0 && (
-        <Paper p="md" withBorder data-section="available-players">
+        <Paper 
+          p="md" 
+          withBorder 
+          data-section="available-players"
+          style={{
+            background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
+            borderColor: 'rgba(255, 193, 7, 0.2)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
           <Title 
             order={4} 
             mb="md"
@@ -1168,7 +1326,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
       <ConfidenceInfoModal
         isOpen={showConfidenceInfo}
-        onClose={() => setShowConfidenceInfo(false)}
+        onClose={handleConfidenceModalClose}
       />
 
       <CanvasPreviewModal
@@ -1212,7 +1370,6 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
           </Group>
         </Stack>
       </Modal>
-
     </Stack>
   );
 };

@@ -13,6 +13,7 @@ interface PDFExportButtonProps {
   teamInfo: TeamInfo;
   algorithm: 'traditional' | 'situational';
   showFieldingPositions: boolean;
+  useFieldingNumbers: boolean;
   onOpenCustomization?: () => void;
 }
 
@@ -21,6 +22,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
   teamInfo,
   algorithm,
   showFieldingPositions,
+  useFieldingNumbers,
   onOpenCustomization
 }) => {
   const pdfContentRef = useRef<HTMLDivElement>(null);
@@ -150,6 +152,30 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
     setShowCustomizationPrompt(false);
     // Generate PDF without customization
     generatePDFDirectly();
+  };
+
+  // Function to convert fielding position to number
+  const getFieldingPositionDisplay = (position: string | undefined, useNumbers: boolean) => {
+    if (!position) return '-';
+    
+    if (useNumbers) {
+      const positionMap: { [key: string]: string } = {
+        'P': '1',
+        'C': '2', 
+        '1B': '3',
+        '2B': '4',
+        '3B': '5',
+        'SS': '6',
+        'LF': '7',
+        'CF': '8',
+        'RF': '9',
+        'EH': 'EH',
+        'DH': 'DH'
+      };
+      return positionMap[position] || position;
+    }
+    
+    return position;
   };
 
   const generatePDFDirectly = async () => {
@@ -382,7 +408,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                {player.fieldingPosition || '-'}
+                {getFieldingPositionDisplay(player.fieldingPosition, useFieldingNumbers)}
               </div>
             )}
           </div>

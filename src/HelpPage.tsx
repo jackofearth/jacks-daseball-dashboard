@@ -575,7 +575,17 @@ const HelpPage: React.FC = () => {
         </Card>
         
         {/* Support Section */}
-        <Card withBorder p="xl" style={{ textAlign: 'center' }}>
+        <Card 
+          withBorder 
+          p="xl" 
+          style={{ 
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
+            borderColor: 'rgba(255, 193, 7, 0.2)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
           <Stack gap="md" align="center">
             <Group>
               <IconCoffee size={40} color="#FFC107" />

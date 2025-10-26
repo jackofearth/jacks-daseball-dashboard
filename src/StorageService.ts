@@ -31,6 +31,7 @@ export interface Player {
   lastName: string;
   position?: string;
   fieldingPosition?: string;
+  battingHand?: 'R' | 'L'; // Righty or Lefty
   // Basic stats
   avg: number;
   obp: number;
@@ -376,5 +377,38 @@ class StorageService {
     }
   }
 }
+
+// Player handedness persistence
+const HANDEDNESS_STORAGE_KEY = 'lineup-star-player-handedness';
+
+export const savePlayerHandedness = (playerName: string, battingHand: 'R' | 'L'): void => {
+  try {
+    const handednessData = getPlayerHandednessData();
+    handednessData[playerName] = battingHand;
+    localStorage.setItem(HANDEDNESS_STORAGE_KEY, JSON.stringify(handednessData));
+  } catch (error) {
+    console.warn('Failed to save player handedness:', error);
+  }
+};
+
+export const getPlayerHandedness = (playerName: string): 'R' | 'L' | undefined => {
+  try {
+    const handednessData = getPlayerHandednessData();
+    return handednessData[playerName];
+  } catch (error) {
+    console.warn('Failed to get player handedness:', error);
+    return undefined;
+  }
+};
+
+const getPlayerHandednessData = (): Record<string, 'R' | 'L'> => {
+  try {
+    const stored = localStorage.getItem(HANDEDNESS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch (error) {
+    console.warn('Failed to parse handedness data:', error);
+    return {};
+  }
+};
 
 export default StorageService;

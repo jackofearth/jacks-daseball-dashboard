@@ -105,6 +105,14 @@ function App() {
 
   const handlePlayersChange = (newPlayers: Player[]) => {
     setPlayers(newPlayers);
+    
+    // Update batting order to reflect any changes in player data
+    setBattingOrder(prevOrder => 
+      prevOrder.map(battingOrderPlayer => {
+        const updatedPlayer = newPlayers.find(p => p.id === battingOrderPlayer.id);
+        return updatedPlayer ? updatedPlayer : battingOrderPlayer;
+      })
+    );
   };
 
   const handleBattingOrderChange = (newOrder: Player[]) => {
@@ -217,6 +225,9 @@ function App() {
                   activeSection={activeSection}
                   onSectionChange={handleSectionChange}
                   onCustomizeTeam={() => setShowTeamCustomizer(true)}
+                  currentView={activeSection}
+                  setCurrentView={(view) => handleSectionChange(view as 'players' | 'lineup' | 'help')}
+                  setShowTeamSettings={() => setShowTeamCustomizer(true)}
                 >
             <Container size="xl">
               {isLoading ? (

@@ -28,7 +28,7 @@ import {
   IconPlus,
   IconCheck
 } from '@tabler/icons-react';
-import { Player, CSVFile } from './StorageService';
+import { Player, CSVFile, savePlayerHandedness, getPlayerHandedness } from './StorageService';
 
 interface PlayerManagerProps {
   players: Player[];
@@ -214,6 +214,8 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
           name: displayName,
           firstName: firstName,
           lastName: lastName,
+          // Check for saved handedness, default to 'R' for CSV imports
+          battingHand: getPlayerHandedness(displayName) || 'R',
           avg,
           obp,
           slg,
@@ -341,11 +343,15 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
   };
 
   const addPlayer = (playerData: Omit<Player, 'id'>) => {
+    // Check for saved handedness
+    const savedHandedness = getPlayerHandedness(playerData.name);
+    
     const newPlayer: Player = {
       id: generateId(),
       name: playerData.name || '',
       firstName: playerData.firstName || '',
       lastName: playerData.lastName || '',
+      battingHand: savedHandedness || playerData.battingHand || 'R',
       avg: playerData.avg || 0,
       obp: playerData.obp || 0,
       slg: playerData.slg || 0,
@@ -400,7 +406,9 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
       // Rate-based stats
       hr_rate: (statsData.ab || 0) > 0 ? (statsData.hr || 0) / (statsData.ab || 1) : 0,
       xbh_rate: (statsData.ab || 0) > 0 ? (statsData.xbh || 0) / (statsData.ab || 1) : 0,
-      two_out_rbi_rate: (statsData.ab_risp || 0) > 0 ? (statsData.two_out_rbi || 0) / (statsData.ab_risp || 1) : 0
+      two_out_rbi_rate: (statsData.ab_risp || 0) > 0 ? (statsData.two_out_rbi || 0) / (statsData.ab_risp || 1) : 0,
+      // Default batting hand to righty
+      battingHand: 'R'
     };
     
     addPlayer(playerData);
@@ -504,12 +512,16 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
         </Paper>
       ) : (
         <Grid>
-          {players.map((player) => (
+          {players
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((player) => (
             <Grid.Col key={player.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
               <PlayerCard
                 player={player}
                 onEdit={() => setEditingPlayer(player)}
                 onDelete={() => deletePlayer(player.id)}
+                players={players}
+                onPlayersChange={onPlayersChange}
               />
             </Grid.Col>
           ))}
@@ -607,9 +619,11 @@ interface PlayerCardProps {
   player: Player;
   onEdit: () => void;
   onDelete: () => void;
+  players: Player[];
+  onPlayersChange: (players: Player[]) => void;
 }
 
-const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => {
+const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, players, onPlayersChange }) => {
   const getConfidenceLevel = (pa: number) => {
     if (pa >= 15) return { level: 'High', color: 'green' };
     if (pa >= 8) return { level: 'Medium', color: 'yellow' };
@@ -621,31 +635,65 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete }) => 
 
   return (
     <Card shadow="sm" padding="md" radius="md" withBorder>
-      <Group justify="space-between" mb="xs">
-        <Text fw={500} size="lg">{player.name}</Text>
-        <Group gap="xs">
-          <Tooltip label="Edit player" position="top">
-            <ActionIcon 
-              color="blue" 
-              variant="light" 
-              onClick={onEdit}
-              size="sm"
-            >
-              <IconEdit size={14} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Delete player" position="top">
-            <ActionIcon 
-              color="red" 
-              variant="light" 
-              onClick={onDelete}
-              size="sm"
-            >
-              <IconTrash size={14} />
-            </ActionIcon>
-          </Tooltip>
+      <Stack gap="xs">
+        {/* Name and buttons on same line */}
+        <Group justify="space-between">
+          <Text fw={500} size="lg">{player.name}</Text>
+          <Group gap="xs">
+            <Tooltip label="Edit player" position="top">
+              <ActionIcon 
+                color="blue" 
+                variant="light" 
+                onClick={onEdit}
+                size="sm"
+              >
+                <IconEdit size={14} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Delete player" position="top">
+              <ActionIcon 
+                color="red" 
+                variant="light" 
+                onClick={onDelete}
+                size="sm"
+              >
+                <IconTrash size={14} />
+              </ActionIcon>
+            </Tooltip>
+          </Group>
         </Group>
-      </Group>
+
+        {/* Bats section on next line */}
+        <Group gap="xs">
+          <Text size="xs" c="dimmed">Bats:</Text>
+          <ActionIcon
+            size="xs"
+            variant={player.battingHand === 'L' ? 'filled' : 'light'}
+            color={player.battingHand === 'L' ? 'red' : 'gray'}
+            onClick={() => {
+              const updatedPlayer = { ...player, battingHand: (player.battingHand === 'R' ? 'L' : 'R') as 'R' | 'L' };
+              onPlayersChange(players.map(p => p.id === player.id ? updatedPlayer : p));
+              // Save handedness for persistence
+              savePlayerHandedness(player.name, updatedPlayer.battingHand);
+            }}
+          >
+            L
+          </ActionIcon>
+          <ActionIcon
+            size="xs"
+            variant={player.battingHand === 'R' ? 'filled' : 'light'}
+            color={player.battingHand === 'R' ? 'blue' : 'gray'}
+            onClick={() => {
+              const updatedPlayer = { ...player, battingHand: (player.battingHand === 'L' ? 'R' : 'L') as 'R' | 'L' };
+              onPlayersChange(players.map(p => p.id === player.id ? updatedPlayer : p));
+              // Save handedness for persistence
+              savePlayerHandedness(player.name, updatedPlayer.battingHand);
+            }}
+          >
+            R
+          </ActionIcon>
+        </Group>
+      </Stack>
       
       <Stack gap="xs">
         <Group justify="space-between">

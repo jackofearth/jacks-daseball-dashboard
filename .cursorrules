@@ -71,6 +71,59 @@ You will follow this structured workflow for every task:
 -   After any modification, **reread the altered artifacts** to verify the change was applied correctly and had no unintended side effects.
 -   Perform end-to-end verification of the primary user workflow to ensure no regressions were introduced.
 
+### 3.1 · MANDATORY ERROR CHECKING PROTOCOL
+**AFTER EVERY CODE CHANGE, YOU MUST:**
+
+1. **Run Linting Check:**
+   ```bash
+   read_lints tool on modified files
+   ```
+
+2. **Run TypeScript Compilation Check:**
+   ```bash
+   npm run build 2>&1 | head -20
+   ```
+
+3. **Verify Server Status:**
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+   ```
+
+4. **AUTONOMOUS ERROR FIXING:**
+   - **If linting errors found:** Fix immediately without user intervention
+   - **If TypeScript errors found:** Fix immediately without user intervention  
+   - **If server not responding:** Restart server and verify functionality
+   - **If build fails:** Diagnose and fix compilation errors autonomously
+
+5. **ERROR FIXING PRIORITIES:**
+   - **TypeScript compilation errors** (highest priority)
+   - **ESLint/TSLint errors** (high priority)
+   - **Runtime errors** (medium priority)
+   - **Warnings** (low priority, but still address)
+
+6. **COMMON ERROR PATTERNS TO AUTO-FIX:**
+   - **Unused imports:** Remove immediately
+   - **Missing props:** Add required props to component interfaces
+   - **Type mismatches:** Fix type annotations and assertions
+   - **Missing dependencies:** Add to useEffect dependency arrays
+   - **Ref errors:** Fix ref usage on components that don't support it
+   - **Import errors:** Fix incorrect import paths and names
+
+7. **VERIFICATION LOOP:**
+   - Fix error → Re-run checks → Repeat until all errors resolved
+   - **NEVER** report completion with outstanding errors
+   - **NEVER** ask user to fix errors you can fix autonomously
+
+8. **REACT/TYPESCRIPT SPECIFIC ERROR PATTERNS:**
+   - **Mantine component props:** Check component documentation for correct prop names
+   - **useRef on components:** Only use refs on DOM elements, not React components
+   - **Missing interface properties:** Add missing properties to TypeScript interfaces
+   - **Event handler types:** Use proper React event types (React.MouseEvent, etc.)
+   - **State type mismatches:** Ensure useState types match usage patterns
+   - **Import/export mismatches:** Fix named vs default import/export issues
+   - **Missing dependencies:** Add all used variables to useEffect dependency arrays
+   - **Component prop drilling:** Fix missing props in component hierarchies
+
 ### 4 · REPORTING & ARTIFACT GOVERNANCE
 -   **Epiremal Narratives:** All transient information—your plan, thought process, logs, and summaries—**must** remain in the chat.
 -   **FORBIDDEN:** Creating unsolicited files (`.md`, notes, etc.) to store your analysis. The chat log is the single source of truth for the session.
@@ -102,12 +155,15 @@ You will follow this structured workflow for every task:
 -   **Compare side-by-side implementations when debugging complex logic**
 -   **Trace through calculations step-by-step with real data**
 -   **When porting algorithms, maintain exact mathematical equivalence**
+-   **Test basic functionality before adding debug code**
+-   **Remove debug code immediately after verification to maintain production quality**
 
 ### USER FEEDBACK AS CRITICAL SIGNAL
 -   **Repeated user corrections indicate systematic failure in approach**
 -   **Treat "still wrong" as a critical failure signal requiring immediate investigation**
 -   **Adapt communication style based on user feedback patterns**
 -   **Avoid overconfident assertions without absolute certainty**
+-   **Implement user testing feedback rapidly and iteratively**
 
 ### CACHE MANAGEMENT DISCIPLINE
 -   **Recognize when persistent errors are due to caching rather than code issues**
@@ -120,6 +176,12 @@ You will follow this structured workflow for every task:
 -   **Acknowledge uncertainty when debugging complex systems**
 -   **Let evidence drive conclusions rather than assumptions**
 -   **When in doubt, investigate further rather than asserting**
+
+### PROACTIVE ISSUE DETECTION
+-   **Investigate git hook warnings immediately rather than ignoring them**
+-   **Use git history effectively to restore accidentally deleted files**
+-   **Monitor build outputs and commit messages for warning signals**
+-   **Address system warnings before they become blocking issues**
 
 ---
 
