@@ -420,7 +420,8 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
         <Stack gap="md">
           <Group justify="center">
             <Title 
-              order={2}
+              order={1}
+              size="h1"
               style={{
                 color: '#FFC107',
                 textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',

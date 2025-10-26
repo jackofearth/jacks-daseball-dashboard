@@ -1,4 +1,4 @@
-// StorageService.ts - Comprehensive localStorage management for Baseball Dashboard
+// StorageService.ts - Comprehensive localStorage management for Lineup Star
 // Handles auto-save, auto-load, and error recovery for all team data
 
 export interface TeamInfo {

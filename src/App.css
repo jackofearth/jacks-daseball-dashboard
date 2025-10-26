@@ -267,3 +267,21 @@ input[type="number"] {
     transform: rotate(360deg);
   }
 }
+
+/* Toast positioning for mobile */
+@media (max-width: 768px) {
+  /* Override react-hot-toast positioning on mobile */
+  div[data-hot-toast] {
+    position: fixed !important;
+    top: 120px !important; /* Underneath the header */
+    right: 16px !important;
+    left: 16px !important;
+    bottom: auto !important;
+    transform: none !important;
+  }
+  
+  /* Ensure toasts don't overlap with header */
+  div[data-hot-toast] > div {
+    margin-bottom: 8px;
+  }
+}

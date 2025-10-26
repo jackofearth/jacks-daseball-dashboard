@@ -78,7 +78,7 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo
                     textShadow: '0 2px 10px rgba(255, 193, 7, 0.3)',
                   }}
                 >
-                  BATTING ORDER SOLVED
+                  Lineup Star
                 </Title>
                 
                 <Text

@@ -956,7 +956,8 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
         <Group justify="space-between" align="center" mb="md">
           <div>
             <Title 
-              order={2} 
+              order={1} 
+              size="h1"
               mb="md"
               style={{
                 color: '#FFC107',
@@ -1011,12 +1012,14 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
               label="Show Fielding Positions"
               checked={showFieldingDropdowns}
               onChange={(event) => setShowFieldingDropdowns(event.currentTarget.checked)}
+              labelPosition="left"
             />
             <Group gap="xs">
               <Switch
                 label="Show Confidence Scores"
                 checked={!hideConfidenceScore}
                 onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
+                labelPosition="left"
               />
               <ActionIcon
                 variant="filled"

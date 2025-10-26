@@ -31,7 +31,8 @@ import {
   IconX,
   IconUsers,
   IconGripVertical,
-  IconHelp
+  IconHelp,
+  IconCoffee
 } from '@tabler/icons-react';
 
 const HelpPage: React.FC = () => {
@@ -571,6 +572,34 @@ const HelpPage: React.FC = () => {
               </Accordion.Panel>
             </Accordion.Item>
           </Accordion>
+        </Card>
+        
+        {/* Support Section */}
+        <Card withBorder p="xl" style={{ textAlign: 'center' }}>
+          <Stack gap="md" align="center">
+            <Group>
+              <IconCoffee size={40} color="#FFC107" />
+              <Title order={3}>Enjoying Lineup Star?</Title>
+            </Group>
+            <Text c="dimmed" maw={500}>
+              If you find Lineup Star valuable, consider buying me a coffee to support continued development!
+            </Text>
+            <Button
+              leftSection={<IconCoffee size={16} />}
+              onClick={() => window.open('https://www.buymeacoffee.com/jackofearth', '_blank')}
+              size="lg"
+              style={{
+                background: 'linear-gradient(45deg, #FFDD00, #FFC107)',
+                color: '#000',
+                fontWeight: 600,
+              }}
+            >
+              Buy Me a Coffee
+            </Button>
+            <Text size="xs" c="dimmed">
+              Your support helps keep this tool constantly improving.
+            </Text>
+          </Stack>
         </Card>
         </Stack>
       </Container>

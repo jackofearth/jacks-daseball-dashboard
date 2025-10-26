@@ -1,7 +1,8 @@
 import React from 'react';
-import { AppShell, Group, Title, ActionIcon, Text, Image, Center, Anchor, ThemeIcon } from '@mantine/core';
+import { AppShell, Group, Title, ActionIcon, Image, Center, Anchor, ThemeIcon } from '@mantine/core';
 import { IconHelp, IconUsers, IconGripVertical, IconPencil } from '@tabler/icons-react';
 import { TeamInfo } from './StorageService';
+import { BuyMeCoffeeHeaderButton } from './components/BuyMeCoffeeHeaderButton';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -38,7 +39,7 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
               <div>
                 <Group gap="md" align="center">
                   <Title order={1} c="white" size="h2">
-                    {teamInfo.name || 'Baseball Dashboard'}
+                    {teamInfo.name || 'My Team'}
                   </Title>
                   <ActionIcon
                     variant="subtle"
@@ -113,6 +114,8 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
                   Help
                 </Group>
               </Anchor>
+              
+              <BuyMeCoffeeHeaderButton />
             </Group>
           </Center>
         </Group>

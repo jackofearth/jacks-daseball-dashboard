@@ -1,4 +1,4 @@
-// Localization utilities for Baseball Dashboard
+// Localization utilities for Lineup Star
 // Handles region-specific spelling and formatting
 
 export interface UserLocation {

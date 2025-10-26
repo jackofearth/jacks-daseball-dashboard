@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Button } from '@mantine/core';
-import { IconDownload } from '@tabler/icons-react';
+import { Button, Text } from '@mantine/core';
+import { IconDownload, IconCoffee } from '@tabler/icons-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
@@ -96,6 +96,43 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
       pdf.save(`${teamInfo.name || 'lineup'}-lineup-${date}.pdf`);
       
       toast.success('PDF exported successfully!', { icon: '✅' });
+      
+      // Add coffee prompt after 3rd and 10th exports
+      const exportCount = parseInt(localStorage.getItem('pdfExportCount') || '0', 10) + 1;
+      localStorage.setItem('pdfExportCount', exportCount.toString());
+      
+      if (exportCount === 3 || exportCount === 10) {
+        setTimeout(() => {
+          toast((t) => (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '8px',
+              padding: '4px'
+            }}>
+              <Text size="sm" fw={600}>Glad you're finding this useful! ☕</Text>
+              <Text size="xs" c="dimmed">
+                Consider supporting to keep it free for all coaches
+              </Text>
+              <Button
+                size="xs"
+                variant="light"
+                color="yellow"
+                leftSection={<IconCoffee size={12} />}
+                onClick={() => {
+                  window.open('https://www.buymeacoffee.com/jackofearth', '_blank');
+                  toast.dismiss(t.id);
+                }}
+              >
+                Buy Me a Coffee
+              </Button>
+            </div>
+          ), {
+            duration: 8000,
+            icon: '☕',
+          });
+        }, 2000);
+      }
     } catch (error) {
       console.error('PDF generation error:', error);
       toast.error('Failed to generate PDF', { icon: '❌' });
@@ -163,6 +200,43 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
       // Save the PDF
       pdf.save(`${teamInfo.name || 'batting-order'}-lineup.pdf`);
       toast.success('PDF exported successfully!', { icon: '📄' });
+      
+      // Add coffee prompt after 3rd and 10th exports (including "Skip for Now" exports)
+      const exportCount = parseInt(localStorage.getItem('pdfExportCount') || '0', 10) + 1;
+      localStorage.setItem('pdfExportCount', exportCount.toString());
+      
+      if (exportCount === 3 || exportCount === 10) {
+        setTimeout(() => {
+          toast((t) => (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '8px',
+              padding: '4px'
+            }}>
+              <Text size="sm" fw={600}>Glad you're finding this useful! ☕</Text>
+              <Text size="xs" c="dimmed">
+                Consider supporting to keep it free for all coaches
+              </Text>
+              <Button
+                size="xs"
+                variant="light"
+                color="yellow"
+                leftSection={<IconCoffee size={12} />}
+                onClick={() => {
+                  window.open('https://www.buymeacoffee.com/jackofearth', '_blank');
+                  toast.dismiss(t.id);
+                }}
+              >
+                Buy Me a Coffee
+              </Button>
+            </div>
+          ), {
+            duration: 8000,
+            icon: '☕',
+          });
+        }, 2000);
+      }
 
     } catch (error) {
       console.error('Error generating PDF:', error);
