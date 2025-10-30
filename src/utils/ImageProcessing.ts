@@ -110,14 +110,19 @@ function detectBorderBackgroundColors(img: HTMLImageElement): { bg1: [number,num
   const d = ctx.getImageData(0, 0, w, h).data;
   // sample a border strip (5% thickness)
   const t = Math.max(2, Math.floor(Math.min(w,h) * 0.05));
-  const samples: [number,number,number][] = [];
+  const samplesAll: [number,number,number][] = [];
+  const samplesGray: [number,number,number][] = [];
   const push = (x:number,y:number) => {
     const idx = (y*w + x)*4;
-    samples.push([d[idx], d[idx+1], d[idx+2]]);
+    const rgb: [number,number,number] = [d[idx], d[idx+1], d[idx+2]];
+    samplesAll.push(rgb);
+    if (isNearGray(rgb, 25) || lowSaturation(rgb, 0.18)) samplesGray.push(rgb);
   };
   for (let x=0; x<w; x++) { for (let y=0; y<t; y++) push(x,y); for (let y=h-t; y<h; y++) push(x,y); }
   for (let y=t; y<h-t; y++) { for (let x=0; x<t; x++) push(x,y); for (let x=w-t; x<w; x++) push(x,y); }
-  const { c1, c2 } = kmeans2(samples);
+  // Prefer clustering only near-gray/low-sat border pixels to avoid sampling logo colors
+  const base = samplesGray.length >= 100 ? samplesGray : samplesAll;
+  const { c1, c2 } = kmeans2(base);
   // ensure lighter is first for stability
   const lum = (c:[number,number,number]) => 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
   const [bg1, bg2] = lum(c1) >= lum(c2) ? [c1, c2] as const : [c2, c1] as const;
@@ -261,6 +266,14 @@ function meanColor(arr: [number,number,number][]): [number,number,number]{
 
 function isNearGray([r,g,b]: [number,number,number], tol: number): boolean {
   return Math.abs(r-g) < tol && Math.abs(g-b) < tol && Math.abs(r-b) < tol;
+}
+
+function lowSaturation([r,g,b]: [number,number,number], threshold: number): boolean {
+  // quick HSV saturation
+  const max = Math.max(r,g,b)/255;
+  const min = Math.min(r,g,b)/255;
+  const s = max === 0 ? 0 : (max - min) / max;
+  return s <= threshold;
 }
 
 
