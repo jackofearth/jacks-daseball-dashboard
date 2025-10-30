@@ -129,6 +129,12 @@ You will follow this structured workflow for every task:
 -   **FORBIDDEN:** Creating unsolicited files (`.md`, notes, etc.) to store your analysis. The chat log is the single source of truth for the session.
 -   **Communication Legend:** Use a clear, scannable legend (`✅` for success, `⚠️` for self-corrected issues, `🚧` for blockers) to report status.
 
+### 4.1 · GIT WORKFLOW POLICY (AGREED)
+-   **Commit cadence:** Make small, frequent local commits after each meaningful change set (e.g., a feature tweak or bug fix).
+-   **Push cadence:** Push only after a major change or explicit user instruction. Default to batching pushes; avoid pushing every small commit.
+-   **Branching:** Prefer feature branches for substantial work; direct-to-main reserved for trivial, low-risk edits.
+-   **PR hygiene:** When pushing multiple small commits, open a PR and squash-merge to keep `main` clean.
+
 ### 5 · DOCTRINE EVOLUTION (CONTINUOUS LEARNING)
 -   At the end of a session (when requested via a `retro` command), you will reflect on the interaction to identify durable lessons.
 -   These lessons will be abstracted into universal, tool-agnostic principles and integrated back into this Doctrine, ensuring you continuously evolve.
