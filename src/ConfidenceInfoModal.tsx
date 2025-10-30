@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Stack, Group, Badge, Text } from '@mantine/core';
+import { Modal, Stack, Group, Badge, Text, Title } from '@mantine/core';
 import { IconBolt, IconAlertTriangle, IconX } from '@tabler/icons-react';
 
 interface ConfidenceInfoModalProps {
@@ -12,9 +12,10 @@ const ConfidenceInfoModal: React.FC<ConfidenceInfoModalProps> = ({ isOpen, onClo
     <Modal
       opened={isOpen}
       onClose={onClose}
-      title="Confidence System"
+      title={<Title order={2}>Confidence System</Title>}
       centered
       size="md"
+      styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}
     >
       <Stack gap="lg">
         <Text size="md">

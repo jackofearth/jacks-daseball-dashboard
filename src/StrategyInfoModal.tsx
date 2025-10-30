@@ -18,9 +18,10 @@ const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, 
     <Modal
       opened={isOpen}
       onClose={onClose}
-      title="Strategy Comparison"
+      title={<Title order={2}>Strategy Comparison</Title>}
       centered
       size="md"
+      styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}
     >
       <Stack gap="lg">
         <Paper p="md" withBorder>

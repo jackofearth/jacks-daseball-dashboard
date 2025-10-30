@@ -11,7 +11,8 @@ import {
   Image,
   Center,
   Box,
-  ColorInput
+  ColorInput,
+  Title
 } from '@mantine/core';
 import { IconUpload } from '@tabler/icons-react';
 import { TeamInfo } from './StorageService';
@@ -37,6 +38,7 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
 
   const [logoPreview, setLogoPreview] = useState<string | null>(teamInfo.logo || null);
   const [localizationSettings, setLocalizationSettings] = useState<{ spelling: 'us' | 'uk' | 'au' | 'ca' }>({ spelling: 'us' });
+  const [isDragging, setIsDragging] = useState(false);
 
   // Detect user location and set localization
   useEffect(() => {
@@ -73,12 +75,21 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
       reader.readAsDataURL(file);
     }
   };
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      handleLogoUpload(files[0]);
+    }
+  };
 
   const handleSave = () => {
     const updatedTeamInfo: TeamInfo = {
       ...teamInfo,
       name: formData.teamName.trim() || '',
-      logo: logoPreview || teamInfo.logo,
+      logo: logoPreview ?? undefined,
       pdfHeaderColor: formData.pdfHeaderColor,
       hasBeenCustomized: true
     };
@@ -109,9 +120,10 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
     <Modal
       opened={isOpen}
       onClose={onClose}
-      title={getLocalizedText('customizeTeam', localizationSettings.spelling)}
+      title={<Title order={2}>Customise my team</Title>}
       size="md"
       centered
+      styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}
     >
       <Stack gap="md">
         {/* Team Name */}
@@ -123,17 +135,67 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
           required
         />
 
-        {/* Logo Upload */}
+        {/* Main Team Colour (move before logo) */}
         <Box>
           <Text size="sm" fw={500} mb="xs">
-            Team Logo
+            {getLocalizedText('mainTeamColor', localizationSettings.spelling)}
           </Text>
+          <ColorInput
+            placeholder={getLocalizedText('selectColor', localizationSettings.spelling)}
+            value={formData.pdfHeaderColor}
+            onChange={(value) => handleInputChange('pdfHeaderColor', value)}
+            withEyeDropper={false}
+            format="hex"
+            swatches={[
+              '#FFC107', // Default yellow
+              '#0033A0', // Royal/Dodger Blue
+              '#0C2340', // Navy
+              '#C8102E', // Cardinal Red
+              '#FA4616', // Giants Orange
+              '#134A8E', // Cubs Blue
+              '#006847', // Athletics Green
+              '#E31837', // Bright Red
+              '#FDB827', // Athletic Gold
+              '#241F20', // Black
+              '#8A2BE2', // Bold Purple
+              '#00A3E0'  // Bright Teal/Cyan
+            ]}
+          />
+        </Box>
+
+        {/* Logo Upload (click or drag) */}
+        <Box>
+          <Group justify="space-between" align="center" mb="xs">
+            <Text size="sm" fw={500}>Team Logo (click or drag image)</Text>
+            {logoPreview && (
+              <Button size="xs" variant="light" color="red" onClick={() => { setLogoPreview(null); onTeamInfoChange({ ...teamInfo, logo: undefined }); }}>
+                Remove Logo
+              </Button>
+            )}
+          </Group>
           <FileInput
             placeholder="Upload team logo"
             leftSection={<IconUpload size={16} />}
             accept="image/*"
             onChange={handleLogoUpload}
           />
+
+          <Paper
+            p="lg"
+            mt="sm"
+            withBorder
+            style={{
+              borderStyle: 'dashed',
+              borderColor: isDragging ? 'rgba(255,193,7,0.8)' : 'rgba(255,255,255,0.25)',
+              background: isDragging ? 'rgba(255,193,7,0.08)' : 'transparent',
+              textAlign: 'center',
+            }}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+          >
+            <Text size="sm" c="dimmed">Drag & drop your logo here</Text>
+          </Paper>
           
           {logoPreview && (
             <Paper p="md" mt="md" withBorder>
@@ -154,39 +216,6 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
               </Center>
             </Paper>
           )}
-        </Box>
-
-        {/* PDF Header Color */}
-        <Box>
-          <Text size="sm" fw={500} mb="xs">
-            {getLocalizedText('mainTeamColor', localizationSettings.spelling)}
-          </Text>
-          <ColorInput
-            placeholder={getLocalizedText('selectColor', localizationSettings.spelling)}
-            value={formData.pdfHeaderColor}
-            onChange={(value) => handleInputChange('pdfHeaderColor', value)}
-            withEyeDropper={false}
-            format="hex"
-            swatches={[
-              '#FFC107', // Default yellow
-              '#8A7A8A', // Desaturated purple
-              '#7A6B7A', // Desaturated purple 2
-              '#6B5C6B', // Desaturated purple 3
-              '#5C4D5C', // Desaturated purple 4
-              '#6B7A8A', // Desaturated blue
-              '#5C6B7A', // Desaturated blue 2
-              '#4D5C6B', // Desaturated blue 3
-              '#7A8A7A', // Desaturated green
-              '#6B7A6B', // Desaturated green 2
-              '#5C6B5C', // Desaturated green 3
-              '#8A7A6B', // Desaturated yellow
-              '#7A6B5C', // Desaturated yellow 2
-              '#8A6B6B', // Desaturated orange
-              '#7A5C5C', // Desaturated orange 2
-              '#7A6B8A', // Desaturated pink
-              '#6B5C7A', // Desaturated pink 2
-            ]}
-          />
         </Box>
 
         {/* Action Buttons */}

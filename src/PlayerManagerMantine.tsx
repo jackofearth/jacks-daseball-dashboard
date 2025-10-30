@@ -454,7 +454,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
               style={{
                 background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
                 color: '#000',
-                fontWeight: 600,
+                border: 'none',
                 boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)',
               }}
             >
@@ -467,9 +467,8 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
               style={{
                 background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
                 color: '#000',
-                fontWeight: 700,
-                boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)',
-                transition: 'all 0.3s ease',
+                border: 'none',
+                boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)',
               }}
               styles={{
                 root: {
@@ -864,7 +863,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel }) => 
             style={{
               background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
               color: '#000',
-              fontWeight: 600,
+              border: 'none',
               boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)',
             }}
           >
@@ -994,7 +993,7 @@ const PlayerStatsForm: React.FC<PlayerStatsFormProps> = ({ playerName, onSave, o
             style={{
               background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
               color: '#000',
-              fontWeight: 600,
+              border: 'none',
               boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)',
             }}
           >

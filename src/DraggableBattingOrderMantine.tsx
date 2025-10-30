@@ -40,7 +40,8 @@ import {
   SegmentedControl,
   Image,
   Badge,
-  Menu
+  Menu,
+  Tooltip
 } from '@mantine/core';
 import {
   IconGripVertical,
@@ -909,7 +910,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       }}>
         <Stack gap="md">
           <Group justify="center">
-            <Title order={1} size="h1">Strategy</Title>
+            <Title order={1} size="h1" style={{ color: '#FFC107', textShadow: '0 0 15px rgba(255, 193, 7, 0.4)', letterSpacing: '0.5px' }}>Strategy</Title>
           </Group>
           <Group justify="center" align="center" style={{ position: 'relative' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -965,18 +966,20 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                     { value: 'situational', label: 'Situational Analytics' }
                   ]}
                   size="lg"
-                  color="blue"
+                  color={algorithm === 'situational' ? 'red' : 'blue'}
                   radius="xl"
                 />
                 
-                <ActionIcon
-                  variant="filled"
-                  color="gray"
-                  onClick={() => setShowStrategyInfo(true)}
-                  size="lg"
-                >
-                  ?
-                </ActionIcon>
+                <Tooltip label="What are these strategies?" position="bottom" withArrow>
+                  <ActionIcon
+                    variant="filled"
+                    color="gray"
+                    onClick={() => setShowStrategyInfo(true)}
+                    size="lg"
+                  >
+                    ?
+                  </ActionIcon>
+                </Tooltip>
               </Group>
             </div>
             <div style={{ position: 'absolute', right: 0 }}>
@@ -1054,7 +1057,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 color: players.length > 0 ? '#000' : undefined,
                 fontWeight: 700,
                 boxShadow: players.length > 0 
-                  ? '0 4px 15px rgba(255, 193, 7, 0.4)' 
+                  ? '0 2px 10px rgba(255, 193, 7, 0.6)' 
                   : undefined,
                 transition: 'all 0.3s ease',
               }}
@@ -1127,18 +1130,20 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                         labelPosition="right"
                         size="sm"
                       />
-                      <ActionIcon
-                        variant="filled"
-                        color="gray"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowConfidenceInfo(true);
-                        }}
-                        size="xs"
-                        style={{ flexShrink: 0 }}
-                      >
-                        ?
-                      </ActionIcon>
+                      <Tooltip label="What are these?" position="bottom" withArrow>
+                        <ActionIcon
+                          variant="filled"
+                          color="gray"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowConfidenceInfo(true);
+                          }}
+                          size="xs"
+                          style={{ flexShrink: 0 }}
+                        >
+                          ?
+                        </ActionIcon>
+                      </Tooltip>
                     </Group>
                   </div>
                 </Menu.Item>

@@ -1,19 +1,32 @@
 import React from 'react';
-import { Container, Title, Text, Stack, Group, Image, ActionIcon, Button } from '@mantine/core';
-import { IconChartBar, IconUsers, IconTrophy, IconX } from '@tabler/icons-react';
+import { Container, Title, Text, Stack, Group, Image, Button } from '@mantine/core';
+import { TeamInfo } from '../StorageService';
+import { HeroTeamCustomizer } from '../components/HeroTeamCustomizer';
+import { IconChartBar, IconUsers, IconTrophy } from '@tabler/icons-react';
 import PrismaticBurst from '../components/PrismaticBurst';
 import './HeroLanding.css';
 
 interface HeroLandingProps {
   onGetStarted: () => void;
-  teamInfo: {
-    name?: string;
-    logo?: string;
-    location?: string;
-  };
+  teamInfo: TeamInfo;
+  onTeamInfoChange: (teamInfo: TeamInfo) => void;
 }
 
-export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo }) => {
+export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo, onTeamInfoChange }) => {
+  const [showCustomize, setShowCustomize] = React.useState(false);
+
+  const handlePrimaryCTA = () => {
+    setShowCustomize(true);
+  };
+
+  const handleReady = (updated: TeamInfo) => {
+    onTeamInfoChange(updated);
+    onGetStarted();
+  };
+
+  const handleLater = () => {
+    onGetStarted();
+  };
   return (
     <div className="hero-landing">
       <PrismaticBurst
@@ -28,38 +41,9 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo
         mixBlendMode="lighten"
         colors={['#870a8a', '#ff7300', '#79024d']}
       />
-      {/* Skip Button */}
-      <ActionIcon
-        variant="subtle"
-        color="gray"
-        size="lg"
-        onClick={onGetStarted}
-        style={{
-          position: 'absolute',
-          top: 20,
-          right: 20,
-          zIndex: 10,
-          color: 'rgba(255, 255, 255, 0.7)',
-        }}
-      >
-        <IconX size={24} />
-      </ActionIcon>
 
       <Container size="lg" style={{ position: 'relative', zIndex: 1 }}>
         <Stack align="center" gap="xl" py={80}>
-          {/* Logo */}
-          {teamInfo.logo && (
-            <Image
-              src={teamInfo.logo}
-              alt={`${teamInfo.name} logo`}
-              w={160}
-              h={160}
-              fit="contain"
-              style={{
-                filter: 'drop-shadow(0 0 20px rgba(255, 193, 7, 0.5))',
-              }}
-            />
-          )}
 
               {/* Main Heading */}
               <Stack align="center" gap="md">
@@ -92,7 +76,7 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo
                     color: '#FFC107',
                   }}
                 >
-                  Your Best Lineup, Backed by Data
+                  Your Best Batting Order, Backed by Data
                 </Text>
               </Stack>
 
@@ -103,8 +87,9 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo
                 maw={600}
                 style={{ textAlign: 'center', lineHeight: 1.6 }}
               >
-                No more gut feelings or spreadsheet headaches. Import your GameChanger stats, 
-                get a proven batting order, export a professional lineup card. Done.
+                No more guesswork or spreadsheet headaches.<br />
+                Import your GameChanger stats, 
+                customise your data-driven batting order, export a dugout-ready lineup card. Boom.
               </Text>
 
               {/* CTA Button - Overlaid on PrismaticBurst */}
@@ -113,7 +98,7 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo
                   size="lg"
                   variant="filled"
                   color="yellow"
-                  onClick={onGetStarted}
+                  onClick={handlePrimaryCTA}
                   style={{
                     fontSize: '18px',
                     fontWeight: 700,
@@ -125,29 +110,35 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo
                     textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
                   }}
                 >
-                  Get Started
+                  Let's Go!
                 </Button>
               </div>
 
               {/* Feature Highlights */}
               <Group gap={50} mt={40}>
                 <Stack align="center" gap="xs">
-                  <IconChartBar size={40} color="#FFC107" />
-                  <Text fw={600} c="white">Smart Algorithms</Text>
-                </Stack>
-                
-                <Stack align="center" gap="xs">
                   <IconUsers size={40} color="#FFC107" />
                   <Text fw={600} c="white">Import in Seconds</Text>
                 </Stack>
                 
                 <Stack align="center" gap="xs">
+                  <IconChartBar size={40} color="#FFC107" />
+                  <Text fw={600} c="white">Smart Algorithms</Text>
+                </Stack>
+                
+                <Stack align="center" gap="xs">
                   <IconTrophy size={40} color="#FFC107" />
-                  <Text fw={600} c="white">Professional PDFs</Text>
+                  <Text fw={600} c="white">Easy Lineup Cards</Text>
                 </Stack>
               </Group>
         </Stack>
       </Container>
+      <HeroTeamCustomizer
+        isOpen={showCustomize}
+        onReady={handleReady}
+        onLater={handleLater}
+        teamInfo={teamInfo}
+      />
     </div>
   );
 };

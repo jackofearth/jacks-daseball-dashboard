@@ -6,7 +6,8 @@ import {
   Group,
   Stack,
   Paper,
-  ThemeIcon
+  ThemeIcon,
+  Title
 } from '@mantine/core';
 import { IconPalette, IconUsers, IconPhoto } from '@tabler/icons-react';
 import { getLocalizedText } from '../utils/LocalizationUtils';
@@ -32,7 +33,7 @@ export const CustomizationPromptDialog: React.FC<CustomizationPromptDialogProps>
     <Modal
       opened={isOpen}
       onClose={onClose}
-      title={`${getLocalizedText('customize', localizationSettings.spelling)} Your Team`}
+      title={<Title order={2}>{`${getLocalizedText('customize', localizationSettings.spelling)} Your Team?`}</Title>}
       size="md"
       centered
     >

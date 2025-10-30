@@ -1,3 +1,6 @@
+:root {
+  --theme-primary: #FFC107;
+}
 
 /* Cool Sports Font for Headings */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
@@ -73,13 +76,13 @@ input[type="number"] {
 
 /* Theme-aware button styles */
 .theme-button-primary {
-  background-color: var(--theme-primary);
+  background-color: #FFC107;
   color: white;
-  border: 1px solid var(--theme-primary);
+  border: 1px solid #FFC107;
 }
 
 .theme-button-primary:hover {
-  background-color: color-mix(in srgb, var(--theme-primary) 85%, black);
+  background-color: color-mix(in srgb, #FFC107 85%, black);
 }
 
 .theme-button-secondary {
@@ -96,7 +99,7 @@ input[type="number"] {
 
 /* Theme-aware text colors */
 .theme-text-primary {
-  color: var(--theme-primary);
+  color: #FFC107;
 }
 
 .theme-text-secondary {
@@ -109,7 +112,7 @@ input[type="number"] {
 
 /* Theme-aware borders */
 .theme-border-primary {
-  border-color: var(--theme-primary);
+  border-color: #FFC107;
 }
 
 .theme-border-secondary {
@@ -122,7 +125,7 @@ input[type="number"] {
 
 /* Theme-aware backgrounds */
 .theme-bg-primary {
-  background-color: var(--theme-primary);
+  background-color: #FFC107;
 }
 
 .theme-bg-secondary {
@@ -135,8 +138,8 @@ input[type="number"] {
 
 /* Theme-aware light backgrounds */
 .theme-bg-primary-light {
-  background-color: color-mix(in srgb, var(--theme-primary) 10%, white);
-  color: var(--theme-primary);
+  background-color: color-mix(in srgb, #FFC107 10%, white);
+  color: #FFC107;
 }
 
 .theme-bg-secondary-light {
@@ -151,9 +154,9 @@ input[type="number"] {
 
 /* Theme-aware borders with light backgrounds */
 .theme-border-primary-light {
-  border: 1px solid color-mix(in srgb, var(--theme-primary) 30%, white);
-  background-color: color-mix(in srgb, var(--theme-primary) 5%, white);
-  color: var(--theme-primary);
+  border: 1px solid color-mix(in srgb, #FFC107 30%, white);
+  background-color: color-mix(in srgb, #FFC107 5%, white);
+  color: #FFC107;
 }
 
 .theme-border-secondary-light {
@@ -170,10 +173,10 @@ input[type="number"] {
 
 /* Theme-aware card styles */
 .theme-card {
-  border: 1px solid color-mix(in srgb, var(--theme-primary) 20%, white);
-  background-color: color-mix(in srgb, var(--theme-primary) 3%, white);
+  border: 1px solid color-mix(in srgb, #FFC107 20%, white);
+  background-color: color-mix(in srgb, #FFC107 3%, white);
   border-radius: 8px;
-  color: var(--theme-primary);
+  color: #FFC107;
 }
 
 .theme-card-secondary {
@@ -185,24 +188,24 @@ input[type="number"] {
 
 /* Theme-aware input styles */
 .theme-input {
-  border: 1px solid color-mix(in srgb, var(--theme-primary) 30%, white);
+  border: 1px solid color-mix(in srgb, #FFC107 30%, white);
   border-radius: 4px;
 }
 
 .theme-input:focus {
-  border-color: var(--theme-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-primary) 20%, transparent);
+  border-color: #FFC107;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #FFC107 20%, transparent);
   outline: none;
 }
 
 /* Theme-aware link styles */
 .theme-link {
-  color: var(--theme-primary);
+  color: #FFC107;
   text-decoration: none;
 }
 
 .theme-link:hover {
-  color: color-mix(in srgb, var(--theme-primary) 80%, black);
+  color: color-mix(in srgb, #FFC107 80%, black);
   text-decoration: underline;
 }
 
@@ -285,3 +288,48 @@ input[type="number"] {
     margin-bottom: 8px;
   }
 }
+
+/* Forced header nav hover styles */
+.nav-btn {
+  border-radius: 999px;
+  transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease !important;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 193, 7, 0.18) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15) !important;
+}
+
+.nav-btn--active {
+  background: rgba(255, 193, 7, 0.12) !important;
+  box-shadow: inset 0 -2px 0 rgba(255, 193, 7, 0.95) !important;
+  color: #FFC107 !important;
+}
+
+.nav-btn--active:hover {
+  background: rgba(255, 193, 7, 0.22) !important;
+  box-shadow: inset 0 -2px 0 rgba(255, 193, 7, 0.95) !important;
+}
+
+/* Header nav theming overrides */
+.nav-btn { color: #fff !important; }
+.nav-btn .mantine-Button-label { color: inherit !important; }
+
+/* Active state: text + icon + background underline */
+.nav-btn.nav-btn--active {
+  color: var(--theme-primary) !important;
+  background: color-mix(in srgb, var(--theme-primary) 20%, transparent) !important;
+  box-shadow: inset 0 -2px 0 var(--theme-primary) !important;
+}
+.nav-btn.nav-btn--active .mantine-Button-label { color: var(--theme-primary) !important; }
+.nav-btn.nav-btn--active svg { color: var(--theme-primary) !important; fill: var(--theme-primary) !important; }
+
+/* Hover state: text + icon + background */
+.nav-btn:hover {
+  color: var(--theme-primary) !important;
+  background: color-mix(in srgb, var(--theme-primary) 25%, transparent) !important;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--theme-primary) 30%, transparent) !important;
+}
+.nav-btn:hover .mantine-Button-label { color: var(--theme-primary) !important; }
+.nav-btn:hover svg { color: var(--theme-primary) !important; fill: var(--theme-primary) !important; }

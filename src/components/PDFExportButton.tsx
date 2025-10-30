@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Button, Text } from '@mantine/core';
+import { Button, Text, Group } from '@mantine/core';
 import { IconDownload, IconCoffee } from '@tabler/icons-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -272,22 +272,21 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
 
   return (
     <>
-      <Button
-        leftSection={<IconDownload size={14} />}
-        onClick={generatePDF}
-        radius="xl"
-        size="sm"
-        disabled={battingOrder.length === 0}
-        style={{
-          background: battingOrder.length > 0
-            ? 'linear-gradient(45deg, #FFC107, #FFD54F)'
-            : undefined,
-          color: battingOrder.length > 0 ? '#000' : undefined,
-          fontWeight: 600,
-        }}
-      >
-        Export PDF
-      </Button>
+      <Group justify="flex-end" style={{ position: 'relative' }}>
+        <Button
+          leftSection={<IconDownload size={16} />}
+          onClick={generatePDF}
+          radius="xl"
+          style={{
+            background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
+            color: '#000',
+            border: 'none',
+            boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)'
+          }}
+        >
+          Export PDF
+        </Button>
+      </Group>
 
       {/* Hidden PDF content that gets rendered to canvas */}
       <div

@@ -132,6 +132,12 @@ function App() {
     setTeamInfo(newTeamInfo);
   };
 
+  // Keep global theme color in sync with selected team color
+  useEffect(() => {
+    const color = teamInfo.pdfHeaderColor || '#FFC107';
+    document.documentElement.style.setProperty('--theme-primary', color);
+  }, [teamInfo.pdfHeaderColor]);
+
   const handleGetStarted = () => {
     setIsTransitioning(true);
     setTimeout(() => {
@@ -188,6 +194,7 @@ function App() {
         <HeroLanding 
           onGetStarted={handleGetStarted}
           teamInfo={teamInfo}
+          onTeamInfoChange={handleTeamInfoChange}
         />
       </div>
     );
@@ -228,6 +235,7 @@ function App() {
                   currentView={activeSection}
                   setCurrentView={(view) => handleSectionChange(view as 'players' | 'lineup' | 'help')}
                   setShowTeamSettings={() => setShowTeamCustomizer(true)}
+                  onShowHero={() => setShowHeroLanding(true)}
                 >
             <Container size="xl">
               {isLoading ? (

@@ -32,7 +32,8 @@ import {
   IconUsers,
   IconGripVertical,
   IconHelp,
-  IconCoffee
+  IconCoffee,
+  IconMail
 } from '@tabler/icons-react';
 
 const HelpPage: React.FC = () => {
@@ -231,7 +232,7 @@ const HelpPage: React.FC = () => {
           <Accordion variant="separated">
             <Accordion.Item value="why-created">
               <Accordion.Control>
-                <Text fw={500}>Why did I create this app?</Text>
+                <Text fw={500}>Why did you create this app?</Text>
               </Accordion.Control>
               <Accordion.Panel>
                 <Text>There's no reason teams who play for fun or juniors shouldn't benefit from all the advanced stats we have at our fingertips. Why base your lineup on vibes when you can base it on cold hard stats?</Text>
@@ -611,6 +612,27 @@ const HelpPage: React.FC = () => {
             </Text>
           </Stack>
         </Card>
+
+        <Divider my="xl" />
+
+        <Stack gap="md" align="center" pb="xl">
+          <Text size="sm" c="dimmed" ta="center" maw={600}>
+            Can't find what you're looking for? Have feedback or found a bug?
+          </Text>
+          <Group gap="xs">
+            <IconMail size={18} color="#FFC107" />
+            <Text size="sm" fw={500}>
+              Email me at{' '}
+              <Anchor 
+                href="mailto:jack@baseballmanager.com"
+                c="yellow"
+                style={{ textDecoration: 'underline' }}
+              >
+                jack@baseballmanager.com
+              </Anchor>
+            </Text>
+          </Group>
+        </Stack>
         </Stack>
       </Container>
     </>
