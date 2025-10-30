@@ -37,6 +37,15 @@ export async function processLogoFileToPngWithAlpha(file: File): Promise<string>
   featherAlpha(imageData, width, height);
   // Remove interior background islands (e.g., enclosed checkerboard inside letters)
   removeInteriorBackgroundIslands(imageData, width, height, bg1, bg2, delta);
+  // Aggressively clear any remaining near-gray background regions anywhere
+  floodFillAllBgRegions(imageData, width, height, (r,g,b,a) => {
+    if (a === 0) return false;
+    const p: [number,number,number] = [r,g,b];
+    if (!lowSaturation(p, 0.18) && !isNearGray(p, 28)) return false;
+    return deltaE(p, bg1) < 10 || deltaE(p, bg2) < 10;
+  });
+  // Remove small disconnected opaque components (e.g., TM marks)
+  removeSmallForegroundComponents(imageData, width, height, 0.012);
   ctx.putImageData(imageData, 0, 0);
   const result = canvas.toDataURL('image/png');
   try { localStorage.setItem(cacheKey, result); } catch {}
@@ -218,6 +227,39 @@ function floodFillAlphaFromBorders(imageData: ImageData, width: number, height: 
   }
 }
 
+function floodFillAllBgRegions(imageData: ImageData, width: number, height: number, isBg: (r:number,g:number,b:number,a:number)=>boolean) {
+  const data = imageData.data;
+  const visited = new Uint8Array(width*height);
+  const q: number[] = [];
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  for (let y=0; y<height; y++) {
+    for (let x=0; x<width; x++) {
+      const idx = y*width + x;
+      if (visited[idx]) continue;
+      const p = idx*4;
+      const r=data[p], g=data[p+1], b=data[p+2], a=data[p+3];
+      if (!isBg(r,g,b,a)) { visited[idx]=1; continue; }
+      // BFS this bg blob
+      q.push(idx); visited[idx]=1;
+      while(q.length){
+        const id = q.shift()!;
+        const pp = id*4;
+        data[pp+3] = 0;
+        const ix = id % width, iy = Math.floor(id/width);
+        for (const [dx,dy] of dirs){
+          const nx = ix+dx, ny=iy+dy;
+          if (nx<0||ny<0||nx>=width||ny>=height) continue;
+          const nid = ny*width + nx;
+          if (visited[nid]) continue;
+          const np = nid*4;
+          const nr=data[np], ng=data[np+1], nb=data[np+2], na=data[np+3];
+          if (isBg(nr,ng,nb,na)) { visited[nid]=1; q.push(nid); }
+        }
+      }
+    }
+  }
+}
+
 function removeInteriorBackgroundIslands(imageData: ImageData, width: number, height: number, bg1: [number,number,number], bg2: [number,number,number], tol: number) {
   const data = imageData.data;
   const isBgColor = (r:number,g:number,b:number) => {
@@ -307,6 +349,48 @@ function lowSaturation([r,g,b]: [number,number,number], threshold: number): bool
 
 function luminance([r,g,b]: [number,number,number]): number {
   return (0.2126*r + 0.7152*g + 0.0722*b) / 255;
+}
+
+function removeSmallForegroundComponents(imageData: ImageData, width: number, height: number, minAreaRatio: number) {
+  const data = imageData.data;
+  const visited = new Uint8Array(width*height);
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  const minArea = Math.max(400, Math.floor(width*height*minAreaRatio));
+  const components: { pixels: number[]; area: number }[] = [];
+  const q: number[] = [];
+  for (let y=0; y<height; y++) {
+    for (let x=0; x<width; x++) {
+      const idx = y*width + x;
+      const p = idx*4;
+      if (visited[idx] || data[p+3] === 0) { visited[idx]=1; continue; }
+      // BFS component
+      let area = 0;
+      const pixels: number[] = [];
+      q.push(idx); visited[idx]=1;
+      while(q.length){
+        const id = q.shift()!; pixels.push(id); area++;
+        const ix = id % width, iy = Math.floor(id/width);
+        for (const [dx,dy] of dirs){
+          const nx = ix+dx, ny=iy+dy;
+          if (nx<0||ny<0||nx>=width||ny>=height) continue;
+          const nid = ny*width + nx;
+          if (visited[nid]) continue;
+          const np = nid*4;
+          if (data[np+3] === 0) { visited[nid]=1; continue; }
+          visited[nid]=1; q.push(nid);
+        }
+      }
+      components.push({ pixels, area });
+    }
+  }
+  // Find max area
+  let maxArea = 0;
+  for (const c of components) if (c.area > maxArea) maxArea = c.area;
+  for (const c of components) {
+    if (c.area < minArea && c.area < maxArea * 0.15) {
+      for (const id of c.pixels) data[id*4 + 3] = 0; // make transparent
+    }
+  }
 }
 
 
