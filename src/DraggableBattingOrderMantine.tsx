@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
-import { PDFExportButton } from './components/PDFExportButton';
 import {
   DndContext,
   closestCenter,
@@ -56,9 +55,11 @@ import {
   IconChevronDown
 } from '@tabler/icons-react';
 import { Player, BattingOrderConfig, UserSettings, TeamInfo } from './StorageService';
-import StrategyInfoModal from './StrategyInfoModal';
-import ConfidenceInfoModal from './ConfidenceInfoModal';
-import CanvasPreviewModal from './CanvasPreviewModal';
+// lazy components are declared after imports (to satisfy import/first)
+const PDFExportButton = React.lazy(() => import('./components/PDFExportButton').then(m => ({ default: m.PDFExportButton })));
+const StrategyInfoModal = React.lazy(() => import('./StrategyInfoModal'));
+const ConfidenceInfoModal = React.lazy(() => import('./ConfidenceInfoModal'));
+// removed CanvasPreviewModal
 
 const getConfidenceIcon = (iconType: string) => {
   switch (iconType) {
@@ -418,7 +419,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   });
   const [showStrategyInfo, setShowStrategyInfo] = useState(false);
   const [showConfidenceInfo, setShowConfidenceInfo] = useState(false);
-  const [showCanvasPreview, setShowCanvasPreview] = useState(false);
+  // removed CanvasPreviewModal state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [savedOrderName, setSavedOrderName] = useState('');
 
@@ -507,6 +508,34 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       });
       return;
     }
+
+    // Centralized action-based customization reminder (3rd and 10th generations)
+    try {
+      const isNameBlank = !teamInfo.name || teamInfo.name.trim() === '';
+      const customizationIncomplete = isNameBlank;
+      if (customizationIncomplete) {
+        const genCount = (parseInt(localStorage.getItem('orderGenerateCount') || '0', 10) + 1);
+        localStorage.setItem('orderGenerateCount', genCount.toString());
+        if (genCount === 3 || genCount === 10) {
+          const lastShown = parseInt(localStorage.getItem('customizeToastLastShownAt') || '0', 10);
+          const lastMilestone = parseInt(localStorage.getItem('customizeToastLastMilestone') || '0', 10);
+          const allowDueToMilestone = genCount === 10 && lastMilestone !== 10; // fire 10th even within 24h of 3rd once
+          if ((Date.now() - lastShown > 24 * 60 * 60 * 1000 || allowDueToMilestone) && onOpenCustomization) {
+            localStorage.setItem('customizeToastLastShownAt', Date.now().toString());
+            localStorage.setItem('customizeToastLastMilestone', genCount.toString());
+            setTimeout(() => {
+              toast((t) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '13px' }}>Customize your team for a better lineup card</div>
+                  <div style={{ fontSize: '12px', opacity: 0.7 }}>Add a team name.</div>
+                  <Button size="xs" radius="xl" onClick={() => { onOpenCustomization(); toast.dismiss(t.id); }}>Customize now</Button>
+                </div>
+              ), { duration: 8000, icon: '🎨' });
+            }, 1500);
+          }
+        }
+      }
+    } catch {}
 
     if (algorithm === 'traditional') {
       generateMLBOrder();
@@ -940,7 +969,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                     filter: algorithm === 'traditional' ? 'none' : 'grayscale(100%)',
                     transition: 'all 0.3s ease'
                   }}>
-                    <img src="/mlblogo.png" alt="MLB" width={56} height={42} style={{ objectFit: 'contain' }} />
+                    <img src="/mlblogo.png" alt="MLB" width={64} height={42} style={{ objectFit: 'contain' }} />
                   </div>
                   <div style={{ 
                     width: '160px', // Fixed width
@@ -951,13 +980,20 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                     filter: algorithm === 'situational' ? 'none' : 'grayscale(100%)',
                     transition: 'all 0.3s ease'
                   }}>
-                    <img src="/situational2.jpg" alt="Situational" width={56} height={42} style={{ objectFit: 'contain' }} />
+                    <img 
+                      src={process.env.PUBLIC_URL + '/situational.png'} 
+                      alt="Situational" 
+                      width={64} 
+                      height={42} 
+                      style={{ objectFit: 'contain' }}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/situational.png'; }}
+                    />
                   </div>
                 </div>
               </div>
               
               {/* Traditional Mantine Toggle */}
-              <Group gap="md" justify="center">
+              <Group gap="md" justify="center" style={{ marginLeft: '40px' }}>
                 <SegmentedControl
                   value={algorithm}
                   onChange={(value) => setAlgorithm(value as 'traditional' | 'situational')}
@@ -983,14 +1019,16 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
               </Group>
             </div>
             <div style={{ position: 'absolute', right: 0 }}>
-              <PDFExportButton
-                battingOrder={battingOrder}
-                teamInfo={teamInfo}
-                algorithm={algorithm}
-                showFieldingPositions={showFieldingDropdowns}
-                useFieldingNumbers={useFieldingNumbers}
-                onOpenCustomization={onOpenCustomization}
-              />
+              <Suspense fallback={null}>
+                <PDFExportButton
+                  battingOrder={battingOrder}
+                  teamInfo={teamInfo}
+                  algorithm={algorithm}
+                  showFieldingPositions={showFieldingDropdowns}
+                  useFieldingNumbers={useFieldingNumbers}
+                  onOpenCustomization={onOpenCustomization}
+                />
+              </Suspense>
             </div>
           </Group>
         </Stack>
@@ -1110,7 +1148,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 <Menu.Item>
                   <div onClick={(e) => e.stopPropagation()}>
                     <Switch
-                      label="Fielding numbers system"
+                      label="Fielding Position Numbers"
                       checked={useFieldingNumbers}
                       onChange={(event) => setUseFieldingNumbers(event.currentTarget.checked)}
                       labelPosition="right"
@@ -1323,25 +1361,22 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       )}
 
       {/* Modals */}
-      <StrategyInfoModal
-        isOpen={showStrategyInfo}
-        onClose={() => setShowStrategyInfo(false)}
-        onNavigateToHelp={onNavigateToHelp}
-      />
+      <Suspense fallback={null}>
+        <StrategyInfoModal
+          isOpen={showStrategyInfo}
+          onClose={() => setShowStrategyInfo(false)}
+          onNavigateToHelp={onNavigateToHelp}
+        />
+      </Suspense>
 
-      <ConfidenceInfoModal
-        isOpen={showConfidenceInfo}
-        onClose={handleConfidenceModalClose}
-      />
+      <Suspense fallback={null}>
+        <ConfidenceInfoModal
+          isOpen={showConfidenceInfo}
+          onClose={handleConfidenceModalClose}
+        />
+      </Suspense>
 
-      <CanvasPreviewModal
-        isOpen={showCanvasPreview}
-        onClose={() => setShowCanvasPreview(false)}
-        onBack={() => setShowCanvasPreview(false)}
-        battingOrder={battingOrder}
-        benchPlayers={availablePlayers}
-        teamInfo={teamInfo}
-      />
+      {/* CanvasPreviewModal removed */}
 
 
 

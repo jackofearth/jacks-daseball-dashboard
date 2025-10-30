@@ -13,13 +13,28 @@ export interface LocalizationSettings {
   currency: string;
 }
 
-// Detect user location based on IP (simplified approach)
+// Detect user location based on IP (with timeout and graceful fallbacks)
 export const detectUserLocation = async (): Promise<UserLocation | null> => {
   try {
-    // Using a free IP geolocation service
-    const response = await fetch('https://ipapi.co/json/');
+    // Avoid network calls during local dev to prevent noisy CORS errors
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1') {
+        const locale = (navigator.language || 'en-US').toLowerCase();
+        const parts = locale.split('-');
+        const country = (parts[1] || 'us').toLowerCase();
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        return { country, region: '', timezone: tz };
+      }
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+    const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!response.ok) throw new Error('Location detection failed');
-    
     const data = await response.json();
     return {
       country: data.country_code?.toLowerCase() || 'us',
@@ -27,8 +42,20 @@ export const detectUserLocation = async (): Promise<UserLocation | null> => {
       timezone: data.timezone || 'UTC'
     };
   } catch (error) {
-    console.warn('Failed to detect user location:', error);
-    return null;
+    // Fallback to navigator locale
+    try {
+      const locale = (navigator.language || 'en-US').toLowerCase();
+      const parts = locale.split('-');
+      const country = (parts[1] || 'us').toLowerCase();
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      return { country, region: '', timezone: tz };
+    } catch {
+      // As a last resort, return null and use defaults
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('Localization fallback to defaults');
+      }
+      return null;
+    }
   }
 };
 

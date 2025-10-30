@@ -227,16 +227,16 @@ function App() {
       />
       <Routes>
         <Route path="/" element={
-                <AppLayout 
-                  teamInfo={teamInfo}
-                  activeSection={activeSection}
+          <AppLayout 
+            teamInfo={teamInfo}
+            activeSection={activeSection}
                   onSectionChange={handleSectionChange}
                   onCustomizeTeam={() => setShowTeamCustomizer(true)}
                   currentView={activeSection}
                   setCurrentView={(view) => handleSectionChange(view as 'players' | 'lineup' | 'help')}
                   setShowTeamSettings={() => setShowTeamCustomizer(true)}
                   onShowHero={() => setShowHeroLanding(true)}
-                >
+          >
             <Container size="xl">
               {isLoading ? (
                 <Center h={400}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Title, Text, Stack, Group, Image, Button } from '@mantine/core';
+import { Container, Title, Text, Stack, Group, Button } from '@mantine/core';
 import { TeamInfo } from '../StorageService';
 import { HeroTeamCustomizer } from '../components/HeroTeamCustomizer';
 import { IconChartBar, IconUsers, IconTrophy } from '@tabler/icons-react';

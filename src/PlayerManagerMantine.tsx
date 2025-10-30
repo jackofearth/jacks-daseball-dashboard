@@ -637,30 +637,30 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player, onEdit, onDelete, playe
       <Stack gap="xs">
         {/* Name and buttons on same line */}
         <Group justify="space-between">
-          <Text fw={500} size="lg">{player.name}</Text>
-          <Group gap="xs">
+        <Text fw={500} size="lg">{player.name}</Text>
+        <Group gap="xs">
             <Tooltip label="Edit player" position="top">
-              <ActionIcon 
-                color="blue" 
-                variant="light" 
-                onClick={onEdit}
-                size="sm"
-              >
-                <IconEdit size={14} />
-              </ActionIcon>
+          <ActionIcon 
+            color="blue" 
+            variant="light" 
+            onClick={onEdit}
+            size="sm"
+          >
+            <IconEdit size={14} />
+          </ActionIcon>
             </Tooltip>
             <Tooltip label="Delete player" position="top">
-              <ActionIcon 
-                color="red" 
-                variant="light" 
-                onClick={onDelete}
-                size="sm"
-              >
-                <IconTrash size={14} />
-              </ActionIcon>
+          <ActionIcon 
+            color="red" 
+            variant="light" 
+            onClick={onDelete}
+            size="sm"
+          >
+            <IconTrash size={14} />
+          </ActionIcon>
             </Tooltip>
-          </Group>
         </Group>
+      </Group>
 
         {/* Bats section on next line */}
         <Group gap="xs">

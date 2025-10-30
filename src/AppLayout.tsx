@@ -1,8 +1,7 @@
 import React from 'react';
-import { AppShell, Group, Title, ActionIcon, Image, Center, Anchor, ThemeIcon, Button, Tooltip } from '@mantine/core';
-import { IconHelp, IconUsers, IconGripVertical, IconPencil, IconMail, IconCoffee, IconSettings, IconChartBar } from '@tabler/icons-react';
+import { AppShell, Group, Title, Button, Tooltip, ActionIcon } from '@mantine/core';
+import { IconHelp, IconUsers, IconCoffee, IconChartBar } from '@tabler/icons-react';
 import { TeamInfo } from './StorageService';
-import { BuyMeCoffeeHeaderButton } from './components/BuyMeCoffeeHeaderButton';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -36,7 +35,7 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
         <Group h="100%" px="lg" justify="space-between" wrap="nowrap">
           {/* Left: Team Branding */}
           <Group gap="md" style={{ minWidth: '280px' }}>
-            {teamInfo.logo && (
+              {teamInfo.logo && (
               <div
                 style={{
                   width: 64,
@@ -88,11 +87,11 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
                   onMouseLeave={(e) => { (e.currentTarget as HTMLHeadingElement).style.textShadow = 'none'; }}
                 >
                   {teamInfo.name || 'My team name'}
-                </Title>
+                  </Title>
               </Tooltip>
             </div>
             
-            {/* Settings icon removed; click logo or team name instead */}
+            {/* Settings icon removed; click team name instead */}
           </Group>
 
           {/* Center: Main Navigation */}
@@ -119,11 +118,7 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
                     transform: 'translateY(-1px)',
                     boxShadow: currentView === 'players' ? 'inset 0 -2px 0 var(--theme-primary), 0 2px 8px color-mix(in srgb, var(--theme-primary) 30%, transparent)' : '0 2px 8px color-mix(in srgb, var(--theme-primary) 30%, transparent)'
                   },
-                  '&:focus-visible': {
-                    outline: '2px solid color-mix(in srgb, var(--theme-primary) 60%, transparent)',
-                    outlineOffset: 2,
-                    boxShadow: '0 0 0 3px color-mix(in srgb, var(--theme-primary) 30%, transparent)'
-                  }
+                  // Focus-visible styles removed to avoid unsupported inline pseudo-selector warning
                 },
               }}
             >
@@ -131,7 +126,7 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
             </Button>
             
             <Button
-              variant="subtle"
+                    variant="subtle" 
               leftSection={<IconChartBar size={16} />}
               onClick={() => setCurrentView?.('lineup')}
               size="md"
@@ -152,18 +147,14 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
                     transform: 'translateY(-1px)',
                     boxShadow: currentView === 'lineup' ? 'inset 0 -2px 0 var(--theme-primary), 0 2px 8px color-mix(in srgb, var(--theme-primary) 30%, transparent)' : '0 2px 8px color-mix(in srgb, var(--theme-primary) 30%, transparent)'
                   },
-                  '&:focus-visible': {
-                    outline: '2px solid color-mix(in srgb, var(--theme-primary) 60%, transparent)',
-                    outlineOffset: 2,
-                    boxShadow: '0 0 0 3px color-mix(in srgb, var(--theme-primary) 30%, transparent)'
-                  }
+                  // Focus-visible styles removed to avoid unsupported inline pseudo-selector warning
                 },
               }}
             >
               Batting Order
             </Button>
           </Group>
-
+          
           {/* Right: Utility Actions */}
           <Group gap="sm" style={{ minWidth: '150px', justifyContent: 'flex-end' }}>
             <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.12)', marginInline: 8 }} />
@@ -209,11 +200,7 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
                     transform: 'translateY(-1px)',
                     boxShadow: currentView === 'help' ? 'inset 0 -2px 0 var(--theme-primary), 0 2px 8px color-mix(in srgb, var(--theme-primary) 30%, transparent)' : '0 2px 8px color-mix(in srgb, var(--theme-primary) 30%, transparent)'
                   },
-                  '&:focus-visible': {
-                    outline: '2px solid color-mix(in srgb, var(--theme-primary) 60%, transparent)',
-                    outlineOffset: 2,
-                    boxShadow: '0 0 0 3px color-mix(in srgb, var(--theme-primary) 30%, transparent)'
-                  }
+                  // Focus-visible styles removed to avoid unsupported inline pseudo-selector warning
                 },
               }}
             >
@@ -271,7 +258,7 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
           />
         )}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {children}
+        {children}
         </div>
       </AppShell.Main>
     </AppShell>

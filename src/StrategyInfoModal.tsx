@@ -18,7 +18,7 @@ const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, 
     <Modal
       opened={isOpen}
       onClose={onClose}
-      title={<Title order={2}>Strategy Comparison</Title>}
+      title={<Title order={2} component="div">Strategy Comparison</Title>}
       centered
       size="md"
       styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}
@@ -29,8 +29,8 @@ const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, 
             <Image
               src="/mlblogo.png"
               alt="MLB Logo"
-              w={60}
-              h={45}
+              w={72}
+              h={54}
               fit="contain"
             />
             <Title order={4} c="blue">
@@ -45,11 +45,12 @@ const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, 
         <Paper p="md" withBorder>
           <Group gap="md" mb="sm">
             <Image
-              src="/situational2.jpg"
+              src={process.env.PUBLIC_URL + '/situational.png'}
               alt="Situational Strategy Logo"
-              w={60}
-              h={45}
+              w={72}
+              h={54}
               fit="contain"
+              onError={(e) => { (e.currentTarget as any).src = '/situational.png'; }}
             />
             <Title order={4} c="green">
               Situational Analytics

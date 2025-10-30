@@ -28,6 +28,70 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
   const pdfContentRef = useRef<HTMLDivElement>(null);
   const [showCustomizationPrompt, setShowCustomizationPrompt] = useState(false);
   const [localizationSettings, setLocalizationSettings] = useState<{ spelling: 'us' | 'uk' | 'au' | 'ca' }>({ spelling: 'us' });
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+
+  // Preload and convert logo to data URL to avoid CORS/taint issues for html2canvas
+  useEffect(() => {
+    const src = teamInfo.logo;
+    if (!src) {
+      setLogoDataUrl(null);
+      return;
+    }
+    let cancelled = false;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          // Bake grayscale into the logo so html2canvas reliably captures it
+          // Use canvas 2D filter when available
+          // @ts-ignore
+          if (typeof ctx.filter !== 'undefined') {
+            // @ts-ignore
+            ctx.filter = 'grayscale(100%)';
+            ctx.drawImage(img, 0, 0);
+          } else {
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              // luminance formula
+              const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+              data[i] = data[i + 1] = data[i + 2] = y;
+            }
+            ctx.putImageData(imageData, 0, 0);
+          }
+          const data = canvas.toDataURL('image/png');
+          if (!cancelled) setLogoDataUrl(data);
+        } else if (!cancelled) {
+          setLogoDataUrl(null);
+        }
+      } catch {
+        if (!cancelled) setLogoDataUrl(null);
+      }
+    };
+    img.onerror = () => {
+      if (!cancelled) setLogoDataUrl(null);
+    };
+    img.src = src;
+    return () => { cancelled = true; };
+  }, [teamInfo.logo]);
+
+  const ensureLogoPreloaded = async () => {
+    if (!teamInfo.logo) return;
+    const start = Date.now();
+    while (!logoDataUrl && Date.now() - start < 1500) {
+      // wait up to 1.5s for preload
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
 
   // Detect user location and set localization
   useEffect(() => {
@@ -55,6 +119,9 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
 
 
     try {
+      // Ensure logo is preloaded to data URL before capture
+      await ensureLogoPreloaded();
+
       // Get the PDF content element
       const element = pdfContentRef.current;
       if (!element) throw new Error('PDF content not found');
@@ -68,6 +135,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
         backgroundColor: '#ffffff',
         logging: false,
         useCORS: true,
+        allowTaint: true,
       });
 
       // Hide it again
@@ -135,6 +203,30 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
           });
         }, 2000);
       }
+
+      // Customization reminder on 3rd/10th export if customization incomplete and not shown in last 24h
+      try {
+        const isNameBlank = !teamInfo.name || teamInfo.name.trim() === '';
+        const customizationIncomplete = isNameBlank;
+        if (customizationIncomplete) {
+          const lastShown = parseInt(localStorage.getItem('customizeToastLastShownAt') || '0', 10);
+          const lastMilestone = parseInt(localStorage.getItem('customizeToastLastMilestone') || '0', 10);
+          const allowDueToMilestone = exportCount === 10 && lastMilestone !== 10;
+          if (Date.now() - lastShown > 24 * 60 * 60 * 1000 || allowDueToMilestone) {
+            localStorage.setItem('customizeToastLastShownAt', Date.now().toString());
+            localStorage.setItem('customizeToastLastMilestone', exportCount.toString());
+            setTimeout(() => {
+              toast((t) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px' }}>
+                  <Text size="sm" fw={600}>Add your team details</Text>
+                  <Text size="xs" c="dimmed">Customize name, color, and logo for a polished PDF.</Text>
+                  <Button size="xs" radius="xl" onClick={() => { onOpenCustomization && onOpenCustomization(); toast.dismiss(t.id); }}>Customize now</Button>
+                </div>
+              ), { duration: 8000, icon: '🎨' });
+            }, 2500);
+          }
+        }
+      } catch {}
     } catch (error) {
       console.error('PDF generation error:', error);
       toast.error('Failed to generate PDF', { icon: '❌' });
@@ -180,12 +272,25 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
 
   const generatePDFDirectly = async () => {
     try {
+      // Ensure logo is preloaded to data URL before capture
+      await ensureLogoPreloaded();
+
       // Get the PDF content element
       const element = pdfContentRef.current;
       if (!element) throw new Error('PDF content not found');
 
-      // Make it visible temporarily for rendering
+      // Make it visible temporarily for rendering (ensure it's measurable and rendered)
+      const prevDisplay = element.style.display;
+      const prevPosition = element.style.position;
+      const prevLeft = element.style.left;
+      const prevTop = element.style.top;
+      const prevVisibility = element.style.visibility;
+
       element.style.display = 'block';
+      element.style.position = 'fixed';
+      element.style.left = '0px';
+      element.style.top = '0px';
+      element.style.visibility = 'hidden';
 
       // Render to canvas with high quality
       const canvas = await html2canvas(element, {
@@ -193,10 +298,15 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
         backgroundColor: '#ffffff',
         logging: false,
         useCORS: true,
+        allowTaint: true,
       });
 
-      // Hide it again
-      element.style.display = 'none';
+      // Restore previous styles
+      element.style.display = prevDisplay;
+      element.style.position = prevPosition;
+      element.style.left = prevLeft;
+      element.style.top = prevTop;
+      element.style.visibility = prevVisibility;
 
       // Create PDF
       const imgData = canvas.toDataURL('image/png');
@@ -264,6 +374,30 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
         }, 2000);
       }
 
+      // Customization reminder on 3rd/10th export (Skip for Now flows counted)
+      try {
+        const isNameBlank = !teamInfo.name || teamInfo.name.trim() === '';
+        const customizationIncomplete = isNameBlank;
+        if (customizationIncomplete) {
+          const lastShown = parseInt(localStorage.getItem('customizeToastLastShownAt') || '0', 10);
+          const lastMilestone = parseInt(localStorage.getItem('customizeToastLastMilestone') || '0', 10);
+          const allowDueToMilestone = exportCount === 10 && lastMilestone !== 10;
+          if (Date.now() - lastShown > 24 * 60 * 60 * 1000 || allowDueToMilestone) {
+            localStorage.setItem('customizeToastLastShownAt', Date.now().toString());
+            localStorage.setItem('customizeToastLastMilestone', exportCount.toString());
+            setTimeout(() => {
+              toast((t) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px' }}>
+                  <Text size="sm" fw={600}>Add your team details</Text>
+                  <Text size="xs" c="dimmed">Customize name, color, and logo for a polished PDF.</Text>
+                  <Button size="xs" radius="xl" onClick={() => { onOpenCustomization && onOpenCustomization(); toast.dismiss(t.id); }}>Customize now</Button>
+                </div>
+              ), { duration: 8000, icon: '🎨' });
+            }, 2500);
+          }
+        }
+      } catch {}
+
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast.error('Failed to generate PDF. Please try again.', { icon: '❌' });
@@ -298,9 +432,30 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
               width: '210mm', // A4 width
               backgroundColor: '#ffffff',
               padding: '10mm',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
             }}
       >
+        {logoDataUrl && (
+          <img
+            src={logoDataUrl}
+            alt="Background Logo"
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '100%',
+              height: 'auto',
+              opacity: 0.03,
+              pointerEvents: 'none',
+              zIndex: 0,
+              filter: 'grayscale(100%)',
+              userSelect: 'none'
+            }}
+          />
+        )}
+        <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Header */}
         <div style={{
           marginBottom: '10px',
@@ -385,7 +540,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
               marginBottom: '4px',
               border: '2px solid #000',
               borderRadius: '6px',
-              backgroundColor: '#fff',
+              backgroundColor: 'transparent',
               boxShadow: `0 1px 4px ${teamInfo.pdfHeaderColor || '#7B1FA2'}15`,
             }}
           >
@@ -447,7 +602,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
               marginBottom: '4px',
               border: '2px solid #000',
               borderRadius: '6px',
-              backgroundColor: '#fafafa',
+              backgroundColor: 'transparent',
               boxShadow: `0 1px 4px ${teamInfo.pdfHeaderColor || '#7B1FA2'}10`,
             }}
           >
@@ -496,6 +651,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
           })}
           <br />
           Strategy: {algorithm === 'traditional' ? 'Modern Baseball Consensus' : 'Situational Analytics'}
+        </div>
         </div>
       </div>
 

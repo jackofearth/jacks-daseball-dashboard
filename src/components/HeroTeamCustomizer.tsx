@@ -44,7 +44,7 @@ export const HeroTeamCustomizer: React.FC<HeroTeamCustomizerProps> = ({ isOpen, 
     <Modal
       opened={isOpen}
       onClose={onLater}
-      title={<Title order={2}>Customise my team?</Title>}
+      title={<Title order={2} component="div">Customise my team?</Title>}
       size="md"
       centered
       styles={{ content: { border: 'none' } }}

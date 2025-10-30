@@ -12,7 +12,7 @@ const ConfidenceInfoModal: React.FC<ConfidenceInfoModalProps> = ({ isOpen, onClo
     <Modal
       opened={isOpen}
       onClose={onClose}
-      title={<Title order={2}>Confidence System</Title>}
+      title={<Title order={2} component="div">Confidence System</Title>}
       centered
       size="md"
       styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}

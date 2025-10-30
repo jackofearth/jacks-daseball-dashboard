@@ -120,7 +120,7 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
     <Modal
       opened={isOpen}
       onClose={onClose}
-      title={<Title order={2}>Customise my team</Title>}
+      title={<Title order={2} component="div">Customise my team</Title>}
       size="md"
       centered
       styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}

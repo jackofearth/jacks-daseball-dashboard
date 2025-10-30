@@ -336,8 +336,8 @@ const HelpPage: React.FC = () => {
             <Image
               src="/mlblogo.png"
               alt="Baseball Logo"
-              w={60}
-              h={45}
+              w={72}
+              h={54}
               fit="contain"
             />
             <Title order={2} c="blue">Modern Baseball Consensus</Title>
@@ -368,11 +368,12 @@ const HelpPage: React.FC = () => {
         <Card id="situational-analytics" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <Image
-              src="/situational2.jpg"
+              src={process.env.PUBLIC_URL + '/situational.png'}
               alt="Situational Strategy Logo"
-              w={60}
-              h={45}
+              w={72}
+              h={54}
               fit="contain"
+              onError={(e) => { (e.currentTarget as any).src = '/situational.png'; }}
             />
             <Title order={2} c="red">Situational Analytics</Title>
           </Group>
