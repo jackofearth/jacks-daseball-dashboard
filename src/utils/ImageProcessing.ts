@@ -5,23 +5,15 @@ export async function processLogoFileToPngWithAlpha(file: File): Promise<string>
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const { data, width, height } = imageData;
 
-  // Multi-strategy: checkerboard detection + border flood-fill from estimated bg
-  const { isChecker, c1, c2 } = detectCheckerboardColorsRobust(img);
-  const bg = estimateCornerBackgroundColor(data, width, height);
+  // Border-driven background identification to preserve interior whites
+  const { bg1, bg2 } = detectBorderBackgroundColors(img);
+  const delta = 30; // generous tolerance for JPEG artifacts
 
-  const delta = 28; // increased tolerance to handle compression noise
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i], g = data[i+1], b = data[i+2];
-    const transparent =
-      (isChecker && (near([r,g,b], c1, delta) || near([r,g,b], c2, delta))) ||
-      near([r,g,b], bg, delta);
-    if (transparent) data[i+3] = 0;
-  }
-
-  // Border flood-fill to capture contiguous background regions missed by color-only mask
+  // Flood fill from all borders using only proximity to border-derived bg colors
   floodFillAlphaFromBorders(imageData, width, height, (r,g,b,a) => {
     if (a === 0) return true;
-    return near([r,g,b], bg, delta) || (isChecker && (near([r,g,b], c1, delta) || near([r,g,b], c2, delta)));
+    const p: [number,number,number] = [r,g,b];
+    return near(p, bg1, delta) || near(p, bg2, delta) || isNearGray(p, 30);
   });
 
   featherAlpha(imageData, width, height);
@@ -107,6 +99,27 @@ function detectCheckerboardColorsRobust(img: HTMLImageElement): { isChecker: boo
   }
   const isChecker = bestScore > 0.55; // slightly relaxed
   return { isChecker, c1, c2 };
+}
+
+function detectBorderBackgroundColors(img: HTMLImageElement): { bg1: [number,number,number]; bg2: [number,number,number] } {
+  const w = 128, h = 128;
+  const { canvas, ctx } = createCanvas(w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  const d = ctx.getImageData(0, 0, w, h).data;
+  // sample a border strip (5% thickness)
+  const t = Math.max(2, Math.floor(Math.min(w,h) * 0.05));
+  const samples: [number,number,number][] = [];
+  const push = (x:number,y:number) => {
+    const idx = (y*w + x)*4;
+    samples.push([d[idx], d[idx+1], d[idx+2]]);
+  };
+  for (let x=0; x<w; x++) { for (let y=0; y<t; y++) push(x,y); for (let y=h-t; y<h; y++) push(x,y); }
+  for (let y=t; y<h-t; y++) { for (let x=0; x<t; x++) push(x,y); for (let x=w-t; x<w; x++) push(x,y); }
+  const { c1, c2 } = kmeans2(samples);
+  // ensure lighter is first for stability
+  const lum = (c:[number,number,number]) => 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];
+  const [bg1, bg2] = lum(c1) >= lum(c2) ? [c1, c2] as const : [c2, c1] as const;
+  return { bg1, bg2 };
 }
 
 function medianColor(arr: [number,number,number][]): [number,number,number] {
@@ -215,6 +228,10 @@ function meanColor(arr: [number,number,number][]): [number,number,number]{
   const n = arr.length || 1;
   const s = arr.reduce((acc,c)=>[acc[0]+c[0], acc[1]+c[1], acc[2]+c[2]],[0,0,0]);
   return [Math.round(s[0]/n), Math.round(s[1]/n), Math.round(s[2]/n)];
+}
+
+function isNearGray([r,g,b]: [number,number,number], tol: number): boolean {
+  return Math.abs(r-g) < tol && Math.abs(g-b) < tol && Math.abs(r-b) < tol;
 }
 
 
