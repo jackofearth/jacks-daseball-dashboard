@@ -159,24 +159,7 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
           <Group gap="sm" style={{ minWidth: '150px', justifyContent: 'flex-end' }}>
             <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.12)', marginInline: 8 }} />
 
-            {/* Temporary: Back to Hero */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onShowHero?.()}
-              styles={{
-                root: {
-                  color: 'var(--theme-primary)',
-                  borderColor: 'color-mix(in srgb, var(--theme-primary) 60%, transparent)',
-                  background: 'transparent',
-                  '&:hover': {
-                    background: 'color-mix(in srgb, var(--theme-primary) 10%, transparent)'
-                  }
-                }
-              }}
-            >
-              Hero
-            </Button>
+            {/* Hero button removed */}
 
             <Button
               variant="subtle"
