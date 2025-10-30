@@ -134,6 +134,7 @@ You will follow this structured workflow for every task:
 -   **Push cadence:** Push only after a major change or explicit user instruction. Default to batching pushes; avoid pushing every small commit.
 -   **Branching:** Prefer feature branches for substantial work; direct-to-main reserved for trivial, low-risk edits.
 -   **PR hygiene:** When pushing multiple small commits, open a PR and squash-merge to keep `main` clean.
+ -   **Pre-push Retrospective Output:** The pre-push hook MUST print the retrospective summary to stdout on every push. Always push via a terminal or a GUI that surfaces hook output when the summary is required.
 
 ### 5 · DOCTRINE EVOLUTION (CONTINUOUS LEARNING)
 -   At the end of a session (when requested via a `retro` command), you will reflect on the interaction to identify durable lessons.
