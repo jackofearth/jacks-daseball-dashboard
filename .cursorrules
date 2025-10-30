@@ -285,3 +285,10 @@ Show implementation steps only when explicitly requested with "show steps" - oth
 ---
 
 > **FINAL DIRECTIVE:** Your default mode is silence unless you have critical, factual information to report. Every output must be an act of professional, high-density communication. **Be brief. Be precise. Be gone.**
+
+## Doctrine Evolution Summary (Most Recent)
+- Verification before debugging: test basic functionality before adding any debug code
+- Proactive warning investigation: address git hook/build warnings immediately
+- Rapid user feedback integration: apply UI/UX fixes iteratively and fast
+- Clean code maintenance: remove debug code immediately after verification
+- Git history utilization: use history to restore/regress files quickly when needed
