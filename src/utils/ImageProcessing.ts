@@ -5,10 +5,11 @@ export async function processLogoFileToPngWithAlpha(file: File): Promise<string>
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const { data, width, height } = imageData;
 
-  const { isChecker, c1, c2 } = detectCheckerboardColorsQuick(img);
+  // Multi-strategy: checkerboard detection + border flood-fill from estimated bg
+  const { isChecker, c1, c2 } = detectCheckerboardColorsRobust(img);
   const bg = estimateCornerBackgroundColor(data, width, height);
 
-  const delta = 22; // tolerance
+  const delta = 28; // increased tolerance to handle compression noise
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i], g = data[i+1], b = data[i+2];
     const transparent =
@@ -16,6 +17,12 @@ export async function processLogoFileToPngWithAlpha(file: File): Promise<string>
       near([r,g,b], bg, delta);
     if (transparent) data[i+3] = 0;
   }
+
+  // Border flood-fill to capture contiguous background regions missed by color-only mask
+  floodFillAlphaFromBorders(imageData, width, height, (r,g,b,a) => {
+    if (a === 0) return true;
+    return near([r,g,b], bg, delta) || (isChecker && (near([r,g,b], c1, delta) || near([r,g,b], c2, delta)));
+  });
 
   featherAlpha(imageData, width, height);
   ctx.putImageData(imageData, 0, 0);
@@ -65,37 +72,40 @@ function estimateCornerBackgroundColor(data: Uint8ClampedArray, width: number, h
   return [avg(0), avg(1), avg(2)];
 }
 
-function detectCheckerboardColorsQuick(img: HTMLImageElement): { isChecker: boolean; c1: [number,number,number]; c2: [number,number,number] } {
-  // downscale and sample grid parity
-  const w = 64, h = 64;
+function detectCheckerboardColorsRobust(img: HTMLImageElement): { isChecker: boolean; c1: [number,number,number]; c2: [number,number,number] } {
+  const w = 96, h = 96;
   const { canvas, ctx } = createCanvas(w, h);
   ctx.drawImage(img, 0, 0, w, h);
   const d = ctx.getImageData(0, 0, w, h).data;
-  // collect two most common colors via k-means-ish seeding
-  const colors: [number,number,number][] = [];
-  for (let y=0; y<h; y+=4) {
-    for (let x=0; x<w; x+=4) {
-      const idx = (y*w + x)*4;
-      colors.push([d[idx], d[idx+1], d[idx+2]]);
-    }
-  }
-  const c1 = medianColor(colors);
-  const c2 = medianColor(colors.filter(c => !near(c, c1, 20)));
-  if (!c2) return { isChecker: false, c1, c2: c1 };
 
-  // check alternating pattern dominance
-  let matches = 0, total = 0;
-  for (let y=0; y<h; y++) {
-    for (let x=0; x<w; x++) {
+  // k-means (k=2) to find two dominant background colors (handles non-gray boards)
+  const samples: [number,number,number][] = [];
+  for (let y=0; y<h; y+=3) {
+    for (let x=0; x<w; x+=3) {
       const idx = (y*w + x)*4;
-      const pix: [number,number,number] = [d[idx], d[idx+1], d[idx+2]];
-      const parity = ((x>>2) + (y>>2)) & 1; // 4x4 tile parity
-      const expect = parity ? c1 : c2;
-      if (near(pix, expect, 22)) matches++;
-      total++;
+      samples.push([d[idx], d[idx+1], d[idx+2]]);
     }
   }
-  const isChecker = matches/total > 0.6; // heuristic
+  const { c1, c2 } = kmeans2(samples);
+
+  // multi-scale alternating parity check across tile sizes
+  const tileSizes = [2, 3, 4, 6, 8];
+  let bestScore = 0;
+  for (const ts of tileSizes) {
+    let matches = 0, total = 0;
+    for (let y=0; y<h; y++) {
+      for (let x=0; x<w; x++) {
+        const idx = (y*w + x)*4;
+        const pix: [number,number,number] = [d[idx], d[idx+1], d[idx+2]];
+        const parity = (Math.floor(x/ts) + Math.floor(y/ts)) & 1;
+        const expect = parity ? c1 : c2;
+        if (deltaE(pix, expect) < 12) matches++;
+        total++;
+      }
+    }
+    bestScore = Math.max(bestScore, matches/total);
+  }
+  const isChecker = bestScore > 0.55; // slightly relaxed
   return { isChecker, c1, c2 };
 }
 
@@ -127,6 +137,84 @@ function featherAlpha(imageData: ImageData, width: number, height: number) {
     }
   }
   for (let i=0, p=0; i<data.length; i+=4, p++) data[i+3] = out[p];
+}
+
+function floodFillAlphaFromBorders(imageData: ImageData, width: number, height: number, isBg: (r:number,g:number,b:number,a:number)=>boolean) {
+  const data = imageData.data;
+  const visited = new Uint8Array(width*height);
+  const q: number[] = [];
+  // seed from all border pixels
+  const push = (x:number,y:number) => {
+    const idx = y*width + x;
+    if (visited[idx]) return;
+    const p = idx*4;
+    const r=data[p], g=data[p+1], b=data[p+2], a=data[p+3];
+    if (isBg(r,g,b,a)) {
+      q.push(idx);
+      visited[idx]=1;
+    }
+  };
+  for (let x=0;x<width;x++){ push(x,0); push(x,height-1); }
+  for (let y=0;y<height;y++){ push(0,y); push(width-1,y); }
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+  while(q.length){
+    const idx = q.shift()!;
+    const p = idx*4;
+    data[p+3] = 0; // make transparent
+    const x = idx % width;
+    const y = Math.floor(idx/width);
+    for (const [dx,dy] of dirs){
+      const nx = x+dx, ny=y+dy;
+      if (nx<0||ny<0||nx>=width||ny>=height) continue;
+      const nidx = ny*width + nx;
+      if (visited[nidx]) continue;
+      const np = nidx*4;
+      const nr=data[np], ng=data[np+1], nb=data[np+2], na=data[np+3];
+      if (isBg(nr,ng,nb,na)){
+        visited[nidx]=1;
+        q.push(nidx);
+      }
+    }
+  }
+}
+
+// Color utilities: Lab distance for robust comparison
+function rgb2lab([r,g,b]: [number,number,number]): [number,number,number]{
+  // sRGB to XYZ
+  const srgb = [r,g,b].map(v => v/255).map(v => v <= 0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4));
+  const x = (0.4124*srgb[0] + 0.3576*srgb[1] + 0.1805*srgb[2]) / 0.95047;
+  const y = (0.2126*srgb[0] + 0.7152*srgb[1] + 0.0722*srgb[2]) / 1.00000;
+  const z = (0.0193*srgb[0] + 0.1192*srgb[1] + 0.9505*srgb[2]) / 1.08883;
+  const f = (t:number) => t > 0.008856 ? Math.pow(t, 1/3) : (7.787*t + 16/116);
+  const fx=f(x), fy=f(y), fz=f(z);
+  return [116*fy - 16, 500*(fx - fy), 200*(fy - fz)];
+}
+
+function deltaE(a: [number,number,number], b: [number,number,number]): number {
+  const la = rgb2lab(a), lb = rgb2lab(b);
+  const dl = la[0]-lb[0], da=la[1]-lb[1], db=la[2]-lb[2];
+  return Math.sqrt(dl*dl + da*da + db*db);
+}
+
+function kmeans2(samples: [number,number,number][]): { c1: [number,number,number]; c2: [number,number,number] }{
+  let c1 = medianColor(samples);
+  let c2 = medianColor(samples.filter(c => deltaE(c, c1) > 10));
+  if (!c2) c2 = [255-c1[0], 255-c1[1], 255-c1[2]] as [number,number,number];
+  for (let iter=0; iter<6; iter++){
+    const g1: [number,number,number][] = [], g2: [number,number,number][] = [];
+    for (const s of samples){
+      (deltaE(s,c1) < deltaE(s,c2) ? g1 : g2).push(s);
+    }
+    if (g1.length) c1 = meanColor(g1);
+    if (g2.length) c2 = meanColor(g2);
+  }
+  return { c1, c2 };
+}
+
+function meanColor(arr: [number,number,number][]): [number,number,number]{
+  const n = arr.length || 1;
+  const s = arr.reduce((acc,c)=>[acc[0]+c[0], acc[1]+c[1], acc[2]+c[2]],[0,0,0]);
+  return [Math.round(s[0]/n), Math.round(s[1]/n), Math.round(s[2]/n)];
 }
 
 
