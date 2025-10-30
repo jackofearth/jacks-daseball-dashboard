@@ -13,10 +13,12 @@ export async function processLogoFileToPngWithAlpha(file: File): Promise<string>
   floodFillAlphaFromBorders(imageData, width, height, (r,g,b,a) => {
     if (a === 0) return true;
     const p: [number,number,number] = [r,g,b];
-    return near(p, bg1, delta) || near(p, bg2, delta) || isNearGray(p, 30);
+    return near(p, bg1, delta) || near(p, bg2, delta);
   });
 
   featherAlpha(imageData, width, height);
+  // Remove interior background islands (e.g., enclosed checkerboard inside letters)
+  removeInteriorBackgroundIslands(imageData, width, height, bg1, bg2, delta);
   ctx.putImageData(imageData, 0, 0);
   return canvas.toDataURL('image/png');
 }
@@ -186,6 +188,33 @@ function floodFillAlphaFromBorders(imageData: ImageData, width: number, height: 
       if (isBg(nr,ng,nb,na)){
         visited[nidx]=1;
         q.push(nidx);
+      }
+    }
+  }
+}
+
+function removeInteriorBackgroundIslands(imageData: ImageData, width: number, height: number, bg1: [number,number,number], bg2: [number,number,number], tol: number) {
+  const data = imageData.data;
+  const isBgColor = (r:number,g:number,b:number) => near([r,g,b], bg1, tol) || near([r,g,b], bg2, tol);
+  const neighborhood = 2; // 5x5
+  for (let y = neighborhood; y < height - neighborhood; y++) {
+    for (let x = neighborhood; x < width - neighborhood; x++) {
+      const idx = (y*width + x)*4;
+      if (data[idx+3] === 0) continue; // already transparent
+      const r = data[idx], g = data[idx+1], b = data[idx+2];
+      if (!isBgColor(r,g,b)) continue;
+      // Local majority check: if most neighbors are bg-like, treat as interior background
+      let bgCount = 0, total = 0;
+      for (let dy=-neighborhood; dy<=neighborhood; dy++) {
+        for (let dx=-neighborhood; dx<=neighborhood; dx++) {
+          const n = ((y+dy)*width + (x+dx))*4;
+          const nr = data[n], ng = data[n+1], nb = data[n+2];
+          if (isBgColor(nr,ng,nb)) bgCount++;
+          total++;
+        }
+      }
+      if (bgCount/total > 0.7) {
+        data[idx+3] = 0;
       }
     }
   }
