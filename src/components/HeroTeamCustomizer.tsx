@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, TextInput, Button, Group, Stack, Paper, FileInput, Image, Center, Box, ColorInput, Title, Text } from '@mantine/core';
 import { IconUpload } from '@tabler/icons-react';
-import { TeamInfo } from '../StorageService';
+import StorageService, { TeamInfo, TeamData } from '../StorageService';
 import { processLogoFileToPngWithAlpha } from '../utils/ImageProcessing';
 
 interface HeroTeamCustomizerProps {
@@ -42,6 +42,13 @@ export const HeroTeamCustomizer: React.FC<HeroTeamCustomizerProps> = ({ isOpen, 
       pdfHeaderColor,
       hasBeenCustomized: true,
     };
+    // Immediate persist
+    try {
+      const existing: TeamData | null = StorageService.loadTeamData();
+      const merged: TeamData = existing ? { ...existing, teamInfo: updated, lastUpdated: new Date().toISOString() } : { ...StorageService.getDefaultTeamData(), teamInfo: updated, lastUpdated: new Date().toISOString() };
+      StorageService.saveTeamData(merged);
+      localStorage.setItem('hasVisitedBefore', 'true');
+    } catch {}
     onReady(updated);
   };
 
@@ -115,8 +122,7 @@ export const HeroTeamCustomizer: React.FC<HeroTeamCustomizerProps> = ({ isOpen, 
           )}
         </Box>
 
-        <Group justify="space-between">
-          <Button variant="outline" onClick={onLater}>Later</Button>
+        <Group justify="flex-end">
           <Button onClick={handleReady} style={{
             background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
             color: '#000',

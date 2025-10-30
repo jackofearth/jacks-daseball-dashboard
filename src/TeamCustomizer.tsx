@@ -15,7 +15,7 @@ import {
   Title
 } from '@mantine/core';
 import { IconUpload } from '@tabler/icons-react';
-import { TeamInfo } from './StorageService';
+import StorageService, { TeamInfo, TeamData } from './StorageService';
 import { getLocalizedText, detectUserLocation, getLocalizationSettings } from './utils/LocalizationUtils';
 import { processLogoFileToPngWithAlpha } from './utils/ImageProcessing';
 
@@ -99,6 +99,20 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
     };
     
     onTeamInfoChange(updatedTeamInfo);
+    // Immediate persist to avoid loss on refresh
+    try {
+      const existing: TeamData | null = StorageService.loadTeamData();
+      const merged: TeamData = existing ? {
+        ...existing,
+        teamInfo: updatedTeamInfo,
+        lastUpdated: new Date().toISOString()
+      } : {
+        ...StorageService.getDefaultTeamData(),
+        teamInfo: updatedTeamInfo,
+        lastUpdated: new Date().toISOString()
+      };
+      StorageService.saveTeamData(merged);
+    } catch {}
     onClose();
   };
 

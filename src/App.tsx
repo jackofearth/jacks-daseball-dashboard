@@ -10,6 +10,7 @@ import { PlayerManager } from './PlayerManagerMantine';
 import { Player } from './StorageService';
 import { DraggableBattingOrder } from './DraggableBattingOrderMantine';
 import StorageService, { TeamData, TeamInfo, CSVFile, BattingOrderConfig, UserSettings } from './StorageService';
+import { clearProcessedLogoCache } from './utils/ImageProcessing';
 import ConfirmationDialog from './ConfirmationDialog';
 import HelpPage from './HelpPage';
 import { AppLayout } from './AppLayout';
@@ -37,6 +38,15 @@ function App() {
 
   // Auto-load data on app start
   useEffect(() => {
+    // One-time purge of processed logo cache
+    try {
+      const key = 'logoCacheClearedV1';
+      if (!localStorage.getItem(key)) {
+        clearProcessedLogoCache();
+        localStorage.setItem(key, 'true');
+      }
+    } catch {}
+
     const loadTeamData = () => {
       try {
         const savedData = StorageService.loadTeamData();
