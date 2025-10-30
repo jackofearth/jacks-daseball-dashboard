@@ -131,7 +131,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
 
       // Render to canvas with high quality
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.6,
         backgroundColor: '#ffffff',
         logging: false,
         useCORS: true,
@@ -294,7 +294,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
 
       // Render to canvas with high quality
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.6,
         backgroundColor: '#ffffff',
         logging: false,
         useCORS: true,

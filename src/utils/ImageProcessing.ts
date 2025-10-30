@@ -1,6 +1,20 @@
 export async function processLogoFileToPngWithAlpha(file: File): Promise<string> {
+  // Simple cache by file identity (name+size+mtime)
+  const cacheKey = `processed:${file.name}:${file.size}:${(file as any).lastModified || ''}`;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return cached;
+  } catch {}
+
   const img = await loadImageFromFile(file);
-  const { canvas, ctx } = createCanvas(img.naturalWidth || img.width, img.naturalHeight || img.height);
+  // Downscale large inputs to speed processing
+  const srcW = img.naturalWidth || img.width;
+  const srcH = img.naturalHeight || img.height;
+  const maxDim = 1024;
+  const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+  const outW = Math.max(1, Math.round(srcW * scale));
+  const outH = Math.max(1, Math.round(srcH * scale));
+  const { canvas, ctx } = createCanvas(outW, outH);
   ctx.drawImage(img, 0, 0);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const { data, width, height } = imageData;
@@ -13,10 +27,10 @@ export async function processLogoFileToPngWithAlpha(file: File): Promise<string>
   floodFillAlphaFromBorders(imageData, width, height, (r,g,b,a) => {
     if (a === 0) return true;
     const p: [number,number,number] = [r,g,b];
-    const isBrightWhite = luminance(p) > 0.88 && lowSaturation(p, 0.10);
+    const isBrightWhite = luminance(p) > 0.92 && lowSaturation(p, 0.10);
     const d1 = deltaE(p, bg1);
     const d2 = deltaE(p, bg2);
-    const thr = isBrightWhite ? 9 : 12; // require tighter match for white pixels
+    const thr = isBrightWhite ? 5 : 11; // stricter for whites
     return (d1 < thr || d2 < thr);
   });
 
@@ -24,7 +38,9 @@ export async function processLogoFileToPngWithAlpha(file: File): Promise<string>
   // Remove interior background islands (e.g., enclosed checkerboard inside letters)
   removeInteriorBackgroundIslands(imageData, width, height, bg1, bg2, delta);
   ctx.putImageData(imageData, 0, 0);
-  return canvas.toDataURL('image/png');
+  const result = canvas.toDataURL('image/png');
+  try { localStorage.setItem(cacheKey, result); } catch {}
+  return result;
 }
 
 function loadImageFromFile(file: File): Promise<HTMLImageElement> {
@@ -208,9 +224,11 @@ function removeInteriorBackgroundIslands(imageData: ImageData, width: number, he
     const p: [number,number,number] = [r,g,b];
     // protect strong whites from removal unless extremely close to bg
     if (luminance(p) > 0.9 && lowSaturation(p, 0.08)) {
-      return deltaE(p, bg1) < 6 || deltaE(p, bg2) < 6;
+      return false; // never treat strong whites as background here
     }
-    return deltaE(p, bg1) < 12 || deltaE(p, bg2) < 12;
+    // Only consider near-gray tones around the bg colors
+    if (!isNearGray(p, 30) && !lowSaturation(p, 0.15)) return false;
+    return deltaE(p, bg1) < 10 || deltaE(p, bg2) < 10;
   };
   const neighborhood = 2; // 5x5
   for (let y = neighborhood; y < height - neighborhood; y++) {
