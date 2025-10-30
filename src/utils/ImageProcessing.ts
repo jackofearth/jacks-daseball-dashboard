@@ -13,7 +13,11 @@ export async function processLogoFileToPngWithAlpha(file: File): Promise<string>
   floodFillAlphaFromBorders(imageData, width, height, (r,g,b,a) => {
     if (a === 0) return true;
     const p: [number,number,number] = [r,g,b];
-    return near(p, bg1, delta) || near(p, bg2, delta);
+    const isBrightWhite = luminance(p) > 0.88 && lowSaturation(p, 0.10);
+    const d1 = deltaE(p, bg1);
+    const d2 = deltaE(p, bg2);
+    const thr = isBrightWhite ? 9 : 12; // require tighter match for white pixels
+    return (d1 < thr || d2 < thr);
   });
 
   featherAlpha(imageData, width, height);
@@ -200,7 +204,14 @@ function floodFillAlphaFromBorders(imageData: ImageData, width: number, height: 
 
 function removeInteriorBackgroundIslands(imageData: ImageData, width: number, height: number, bg1: [number,number,number], bg2: [number,number,number], tol: number) {
   const data = imageData.data;
-  const isBgColor = (r:number,g:number,b:number) => near([r,g,b], bg1, tol) || near([r,g,b], bg2, tol);
+  const isBgColor = (r:number,g:number,b:number) => {
+    const p: [number,number,number] = [r,g,b];
+    // protect strong whites from removal unless extremely close to bg
+    if (luminance(p) > 0.9 && lowSaturation(p, 0.08)) {
+      return deltaE(p, bg1) < 6 || deltaE(p, bg2) < 6;
+    }
+    return deltaE(p, bg1) < 12 || deltaE(p, bg2) < 12;
+  };
   const neighborhood = 2; // 5x5
   for (let y = neighborhood; y < height - neighborhood; y++) {
     for (let x = neighborhood; x < width - neighborhood; x++) {
@@ -274,6 +285,10 @@ function lowSaturation([r,g,b]: [number,number,number], threshold: number): bool
   const min = Math.min(r,g,b)/255;
   const s = max === 0 ? 0 : (max - min) / max;
   return s <= threshold;
+}
+
+function luminance([r,g,b]: [number,number,number]): number {
+  return (0.2126*r + 0.7152*g + 0.0722*b) / 255;
 }
 
 
