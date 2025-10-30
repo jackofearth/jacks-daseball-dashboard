@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal, TextInput, Button, Group, Stack, Paper, FileInput, Image, Center, Box, ColorInput, Title, Text } from '@mantine/core';
 import { IconUpload } from '@tabler/icons-react';
 import { TeamInfo } from '../StorageService';
+import { processLogoFileToPngWithAlpha } from '../utils/ImageProcessing';
 
 interface HeroTeamCustomizerProps {
   isOpen: boolean;
@@ -21,8 +22,12 @@ export const HeroTeamCustomizer: React.FC<HeroTeamCustomizerProps> = ({ isOpen, 
     setLogoPreview(teamInfo.logo || null);
   }, [teamInfo, isOpen]);
 
-  const handleLogoUpload = (file: File | null) => {
-    if (file) {
+  const handleLogoUpload = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const processed = await processLogoFileToPngWithAlpha(file);
+      setLogoPreview(processed);
+    } catch {
       const reader = new FileReader();
       reader.onload = (e) => setLogoPreview(e.target?.result as string);
       reader.readAsDataURL(file);

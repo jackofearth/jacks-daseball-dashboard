@@ -17,6 +17,7 @@ import {
 import { IconUpload } from '@tabler/icons-react';
 import { TeamInfo } from './StorageService';
 import { getLocalizedText, detectUserLocation, getLocalizationSettings } from './utils/LocalizationUtils';
+import { processLogoFileToPngWithAlpha } from './utils/ImageProcessing';
 
 interface TeamCustomizerProps {
   teamInfo: TeamInfo;
@@ -66,12 +67,15 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
     }));
   };
 
-  const handleLogoUpload = (file: File | null) => {
-    if (file) {
+  const handleLogoUpload = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const processed = await processLogoFileToPngWithAlpha(file);
+      setLogoPreview(processed);
+    } catch {
+      // Fallback to raw
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setLogoPreview(e.target?.result as string);
-      };
+      reader.onload = (e) => setLogoPreview(e.target?.result as string);
       reader.readAsDataURL(file);
     }
   };
