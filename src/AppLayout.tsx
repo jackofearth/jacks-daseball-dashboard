@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppShell, Group, Title, Button, Tooltip, ActionIcon, Drawer, Stack } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
-import { IconHelp, IconUsers, IconCoffee, IconChartBar, IconMenu2, IconSparkles } from '@tabler/icons-react';
+import { IconHelp, IconUsers, IconCoffee, IconChartBar, IconMenu2 } from '@tabler/icons-react';
 import { TeamInfo } from './StorageService';
 
 interface AppLayoutProps {
@@ -133,21 +133,8 @@ export function AppLayout({ children, teamInfo, activeSection, onSectionChange, 
               </Tooltip>
             </Group>
 
-            {/* Hero Button */}
-            <Tooltip label="View Hero Page" position="bottom" withArrow>
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                size="lg"
-                onClick={() => onShowHero?.()}
-                style={{
-                  color: '#FFC107',
-                  transition: 'opacity 0.2s ease'
-                }}
-              >
-                <IconSparkles size={24} />
-              </ActionIcon>
-            </Tooltip>
+            {/* Spacer to balance burger menu */}
+            <div style={{ width: '48px' }} />
           </Group>
         ) : (
           // Desktop Header

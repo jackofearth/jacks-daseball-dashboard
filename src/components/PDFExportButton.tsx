@@ -253,9 +253,9 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
               gap: '8px',
               padding: '4px'
             }}>
-              <Text size="sm" fw={600}>Glad you're finding this useful! ☕</Text>
+              <Text size="sm" fw={600}>I'm glad you're finding this useful!</Text>
               <Text size="xs" c="dimmed">
-                Consider supporting to keep it free for all coaches
+                Consider supporting ongoing development of new features.
               </Text>
               <Button
                 size="xs"
@@ -453,9 +453,9 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
               gap: '8px',
               padding: '4px'
             }}>
-              <Text size="sm" fw={600}>Glad you're finding this useful! ☕</Text>
+              <Text size="sm" fw={600}>I'm glad you're finding this useful!</Text>
               <Text size="xs" c="dimmed">
-                Consider supporting to keep it free for all coaches
+                Consider supporting ongoing development of new features.
               </Text>
               <Button
                 size="xs"
