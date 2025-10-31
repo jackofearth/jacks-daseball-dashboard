@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Stack, Group, Badge, Text, Title } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconBolt, IconAlertTriangle, IconX } from '@tabler/icons-react';
 
 interface ConfidenceInfoModalProps {
@@ -8,14 +9,27 @@ interface ConfidenceInfoModalProps {
 }
 
 const ConfidenceInfoModal: React.FC<ConfidenceInfoModalProps> = ({ isOpen, onClose }) => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
+  
   return (
     <Modal
       opened={isOpen}
       onClose={onClose}
       title={<Title order={2} component="div">Confidence System</Title>}
-      centered
+      centered={!isMobile}
+      fullScreen={isMobile}
       size="md"
-      styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}
+      styles={{ 
+        content: { 
+          border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)',
+        },
+        header: {
+          padding: isMobile ? 'md' : undefined,
+        },
+        body: {
+          padding: isMobile ? 'md' : undefined,
+        },
+      }}
     >
       <Stack gap="lg">
         <Text size="md">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Container, Loader, Center, Text, Alert, Stack } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
@@ -18,6 +19,7 @@ import TeamCustomizer from './TeamCustomizer';
 import { HeroLanding } from './pages/HeroLanding';
 
 function App() {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
   const [players, setPlayers] = useState<Player[]>([]);
   const [battingOrder, setBattingOrder] = useState<Player[]>([]);
   const [teamInfo, setTeamInfo] = useState<TeamInfo>(StorageService.getDefaultTeamData().teamInfo);
@@ -206,7 +208,7 @@ function App() {
           teamInfo={teamInfo}
           onTeamInfoChange={handleTeamInfoChange}
         />
-      </div>
+          </div>
     );
   }
 
@@ -247,7 +249,7 @@ function App() {
                   setShowTeamSettings={() => setShowTeamCustomizer(true)}
                   onShowHero={() => setShowHeroLanding(true)}
           >
-            <Container size="xl">
+            <Container size={isMobile ? "100%" : "xl"} px={isMobile ? "sm" : "md"}>
               {isLoading ? (
                 <Center h={400}>
                   <Stack align="center" gap="md">

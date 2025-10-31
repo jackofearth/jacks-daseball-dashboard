@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Group, Button, Stack, Paper, TextInput, Divider, Title, Image, Text } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconPrinter, IconFileDownload, IconArrowLeft, IconEdit } from '@tabler/icons-react';
 import { Player, TeamInfo } from './StorageService';
 import { generateLineupCanvas } from './utils/CanvasGenerator';
@@ -22,6 +23,7 @@ const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
   benchPlayers,
   teamInfo
 }) => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
   const [customTeamName, setCustomTeamName] = useState(teamInfo.name);
   const [customCityName, setCustomCityName] = useState(teamInfo.location || '');
   const [gameDate, setGameDate] = useState(new Date().toLocaleDateString());
@@ -85,7 +87,16 @@ const CanvasPreviewModal: React.FC<CanvasPreviewModalProps> = ({
       onClose={onClose}
       title="Canvas Lineup Preview"
       size="xl"
-      centered
+      centered={!isMobile}
+      fullScreen={isMobile}
+      styles={{
+        header: {
+          padding: isMobile ? 'md' : undefined,
+        },
+        body: {
+          padding: isMobile ? 'md' : undefined,
+        },
+      }}
     >
       <Stack gap="md">
         {/* Customization Options */}

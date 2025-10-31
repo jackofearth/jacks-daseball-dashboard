@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Text, Group, Button, Stack, ThemeIcon } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconAlertTriangle, IconInfoCircle, IconX } from '@tabler/icons-react';
 
 interface ConfirmationDialogProps {
@@ -23,6 +24,8 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   onCancel,
   type = 'warning'
 }) => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
+  
   const getTypeConfig = () => {
     switch (type) {
       case 'danger':
@@ -53,8 +56,17 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       opened={isOpen}
       onClose={onCancel}
       title={title}
-      centered
+      centered={!isMobile}
+      fullScreen={isMobile}
       size="sm"
+      styles={{
+        header: {
+          padding: isMobile ? 'md' : undefined,
+        },
+        body: {
+          padding: isMobile ? 'md' : undefined,
+        },
+      }}
     >
       <Stack gap="md" align="center">
         <ThemeIcon

@@ -31,6 +31,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
   const [showCustomizationPrompt, setShowCustomizationPrompt] = useState(false);
   const [localizationSettings, setLocalizationSettings] = useState<{ spelling: 'us' | 'uk' | 'au' | 'ca' }>({ spelling: 'us' });
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
+  const [baseballEmojiDataUrl, setBaseballEmojiDataUrl] = useState<string | null>(null);
 
   // Preload and convert logo to data URL to avoid CORS/taint issues for html2canvas
   useEffect(() => {
@@ -86,6 +87,69 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
     return () => { cancelled = true; };
   }, [teamInfo.logo]);
 
+  // Create baseball emoji as image data URL for PDF
+  useEffect(() => {
+    // Create a canvas with the baseball emoji
+    const canvas = document.createElement('canvas');
+    canvas.width = 2000;
+    canvas.height = 2000;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setBaseballEmojiDataUrl(null);
+      return;
+    }
+    
+    // Set white background (transparent would be better, but PNG supports it)
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw the emoji with thick circular border
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 840; // Approximate radius for 1440px font (700 * 1.2)
+    const borderWidth = 7; // Ultra thin border
+    
+    // Draw thick black circle as border
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius + borderWidth, 0, Math.PI * 2);
+    ctx.fillStyle = '#000000';
+    ctx.fill();
+    
+    // Draw white circle to create border effect
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    
+    // Draw the emoji on top (scaled up 20%)
+    ctx.font = '1440px Arial'; // 1200 * 1.2
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#000000';
+    ctx.fillText('⚾', centerX, centerY);
+    
+    // Bake grayscale into the emoji image so html2canvas reliably captures it
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      // luminance formula for grayscale
+      const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      data[i] = data[i + 1] = data[i + 2] = y;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    
+    // Convert to data URL
+    try {
+      const dataUrl = canvas.toDataURL('image/png');
+      setBaseballEmojiDataUrl(dataUrl);
+    } catch {
+      setBaseballEmojiDataUrl(null);
+    }
+  }, []);
+
   const ensureLogoPreloaded = async () => {
     if (!teamInfo.logo) return;
     const start = Date.now();
@@ -138,30 +202,37 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
         logging: false,
         useCORS: true,
         allowTaint: true,
+        onclone: (clonedDoc) => {
+          // Ensure baseball emoji background is visible
+          const baseballBg = clonedDoc.querySelector(`[data-baseball-bg]`);
+          if (baseballBg) {
+            (baseballBg as HTMLElement).style.visibility = 'visible';
+            (baseballBg as HTMLElement).style.opacity = '0.04';
+            (baseballBg as HTMLElement).style.display = 'block';
+          }
+        }
       });
 
       // Hide it again
       element.style.display = 'none';
 
-      // Create PDF
+      // Create PDF - single page only, scale to fit within A4
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgData = canvas.toDataURL('image/png');
-      const imgWidth = 210; // A4 width in mm
+      const pageWidth = 210; // A4 width in mm
       const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
+      const imgAspect = canvas.width / canvas.height;
 
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      // Fit image into single page while preserving aspect ratio
+      let renderWidth = pageWidth;
+      let renderHeight = renderWidth / imgAspect;
+      if (renderHeight > pageHeight) {
+        renderHeight = pageHeight;
+        renderWidth = renderHeight * imgAspect;
       }
+      const x = 0; // left align
+      const y = (pageHeight - renderHeight) / 2; // vertically center
+      pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
 
       // Save the PDF
       const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -325,6 +396,13 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
             (clonedElement as HTMLElement).style.opacity = '1';
             (clonedElement as HTMLElement).style.display = 'block';
           }
+          // Ensure baseball emoji background is visible
+          const baseballBg = clonedDoc.querySelector(`[data-baseball-bg]`);
+          if (baseballBg) {
+            (baseballBg as HTMLElement).style.visibility = 'visible';
+            (baseballBg as HTMLElement).style.opacity = '0.04';
+            (baseballBg as HTMLElement).style.display = 'block';
+          }
         }
       });
 
@@ -336,7 +414,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
       element.style.opacity = prevOpacity;
       element.style.zIndex = prevZIndex;
 
-      // Create PDF
+      // Create PDF - single page only, scale to fit within A4
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -344,22 +422,19 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
         format: 'a4'
       });
 
-      const imgWidth = 210;
+      const pageWidth = 210;
       const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
+      const imgAspect = canvas.width / canvas.height;
 
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      let renderWidth = pageWidth;
+      let renderHeight = renderWidth / imgAspect;
+      if (renderHeight > pageHeight) {
+        renderHeight = pageHeight;
+        renderWidth = renderHeight * imgAspect;
       }
+      const x = 0;
+      const y = (pageHeight - renderHeight) / 2;
+      pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
 
       // Save the PDF
       pdf.save(`${teamInfo.name || 'batting-order'}-lineup.pdf`);
@@ -477,7 +552,7 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
               boxSizing: 'border-box'
             }}
       >
-        {logoDataUrl && (
+        {logoDataUrl ? (
           <img
             src={logoDataUrl}
             alt="Background Logo"
@@ -499,6 +574,32 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
               userSelect: 'none'
             }}
           />
+        ) : (
+          baseballEmojiDataUrl && (
+            <img
+              src={baseballEmojiDataUrl}
+              alt="Background Baseball"
+              aria-hidden
+              data-baseball-bg="true"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '0',
+                transform: 'translateY(-50%)',
+                width: '100%',
+                height: 'auto',
+                minWidth: '100%',
+                objectFit: 'cover',
+                opacity: 0.04,
+                pointerEvents: 'none',
+                zIndex: 0,
+                filter: 'grayscale(100%)',
+                userSelect: 'none',
+                visibility: 'visible',
+                display: 'block'
+              }}
+            />
+          )
         )}
         <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Header */}

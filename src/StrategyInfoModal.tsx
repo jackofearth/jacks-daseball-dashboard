@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Text, Group, Button, Stack, Paper, Image, Title, Divider } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconExternalLink } from '@tabler/icons-react';
 
 interface StrategyInfoModalProps {
@@ -9,6 +10,8 @@ interface StrategyInfoModalProps {
 }
 
 const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, onNavigateToHelp }) => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
+
   const handleHelpClick = () => {
     onNavigateToHelp();
     onClose();
@@ -19,20 +22,31 @@ const StrategyInfoModal: React.FC<StrategyInfoModalProps> = ({ isOpen, onClose, 
       opened={isOpen}
       onClose={onClose}
       title={<Title order={2} component="div">Strategy Comparison</Title>}
-      centered
+      centered={!isMobile}
+      fullScreen={isMobile}
       size="md"
-      styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}
+      styles={{ 
+        content: { 
+          border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)',
+        },
+        header: {
+          padding: isMobile ? 'md' : undefined,
+        },
+        body: {
+          padding: isMobile ? 'md' : undefined,
+        },
+      }}
     >
       <Stack gap="lg">
         <Paper p="md" withBorder>
           <Group gap="md" mb="sm">
             <Image
-              src="/mlblogo.png"
-              alt="MLB Logo"
+                src="/mlblogo.png"
+                alt="MLB Logo"
               w={72}
               h={54}
               fit="contain"
-            />
+              />
             <Title order={4} c="blue">
               Modern Baseball Consensus
             </Title>

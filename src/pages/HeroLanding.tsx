@@ -1,5 +1,6 @@
 import React from 'react';
 import { Container, Title, Text, Stack, Group, Button } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { TeamInfo } from '../StorageService';
 import { HeroTeamCustomizer } from '../components/HeroTeamCustomizer';
 import { IconChartBar, IconUsers, IconTrophy } from '@tabler/icons-react';
@@ -14,6 +15,7 @@ interface HeroLandingProps {
 
 export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo, onTeamInfoChange }) => {
   const [showCustomize, setShowCustomize] = React.useState(false);
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
 
   const handlePrimaryCTA = () => {
     setShowCustomize(true);
@@ -115,20 +117,47 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({ onGetStarted, teamInfo
               </div>
 
               {/* Feature Highlights */}
-              <Group gap={50} mt={40}>
-                <Stack align="center" gap="xs">
-                  <IconUsers size={40} color="#FFC107" />
-                  <Text fw={600} c="white">Import in Seconds</Text>
+              <Group 
+                gap={isMobile ? 12 : 50} 
+                mt={40}
+                wrap={isMobile ? "nowrap" : "wrap"}
+                justify={isMobile ? "space-between" : "center"}
+                style={isMobile ? { width: '100%', padding: '0 8px' } : {}}
+              >
+                <Stack align="center" gap={isMobile ? "6px" : "xs"} style={{ flex: isMobile ? 1 : 'none', minWidth: 0 }}>
+                  <IconUsers size={isMobile ? 32 : 40} color="#FFC107" />
+                  <Text 
+                    fw={600} 
+                    c="white" 
+                    size={isMobile ? "sm" : "sm"}
+                    style={{ textAlign: 'center', lineHeight: 1.2 }}
+                  >
+                    Import in Seconds
+                  </Text>
                 </Stack>
                 
-                <Stack align="center" gap="xs">
-                  <IconChartBar size={40} color="#FFC107" />
-                  <Text fw={600} c="white">Smart Algorithms</Text>
+                <Stack align="center" gap={isMobile ? "6px" : "xs"} style={{ flex: isMobile ? 1 : 'none', minWidth: 0 }}>
+                  <IconChartBar size={isMobile ? 32 : 40} color="#FFC107" />
+                  <Text 
+                    fw={600} 
+                    c="white" 
+                    size={isMobile ? "sm" : "sm"}
+                    style={{ textAlign: 'center', lineHeight: 1.2 }}
+                  >
+                    Smart Algorithms
+                  </Text>
                 </Stack>
                 
-                <Stack align="center" gap="xs">
-                  <IconTrophy size={40} color="#FFC107" />
-                  <Text fw={600} c="white">Easy Lineup Cards</Text>
+                <Stack align="center" gap={isMobile ? "6px" : "xs"} style={{ flex: isMobile ? 1 : 'none', minWidth: 0 }}>
+                  <IconTrophy size={isMobile ? 32 : 40} color="#FFC107" />
+                  <Text 
+                    fw={600} 
+                    c="white" 
+                    size={isMobile ? "sm" : "sm"}
+                    style={{ textAlign: 'center', lineHeight: 1.2 }}
+                  >
+                    Easy Lineup Cards
+                  </Text>
                 </Stack>
               </Group>
         </Stack>

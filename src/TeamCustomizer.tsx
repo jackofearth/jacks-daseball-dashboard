@@ -14,6 +14,7 @@ import {
   ColorInput,
   Title
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconUpload } from '@tabler/icons-react';
 import StorageService, { TeamInfo, TeamData } from './StorageService';
 import { getLocalizedText, detectUserLocation, getLocalizationSettings } from './utils/LocalizationUtils';
@@ -32,6 +33,7 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
   onClose,
   isOpen
 }) => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
   const [formData, setFormData] = useState({
     teamName: teamInfo.name || '',
     pdfHeaderColor: teamInfo.pdfHeaderColor || '#FFC107'
@@ -140,8 +142,19 @@ const TeamCustomizer: React.FC<TeamCustomizerProps> = ({
       onClose={onClose}
       title={<Title order={2} component="div">Customise my team</Title>}
       size="md"
-      centered
-      styles={{ content: { border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)' } }}
+      centered={!isMobile}
+      fullScreen={isMobile}
+      styles={{ 
+        content: { 
+          border: '1px solid color-mix(in srgb, var(--theme-primary) 40%, transparent)',
+        },
+        header: {
+          padding: isMobile ? 'md' : undefined,
+        },
+        body: {
+          padding: isMobile ? 'md' : undefined,
+        },
+      }}
     >
       <Stack gap="md">
         {/* Team Name */}

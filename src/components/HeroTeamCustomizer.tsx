@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, TextInput, Button, Group, Stack, Paper, FileInput, Image, Center, Box, ColorInput, Title, Text } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconUpload } from '@tabler/icons-react';
 import StorageService, { TeamInfo, TeamData } from '../StorageService';
 import { processLogoFileToPngWithAlpha } from '../utils/ImageProcessing';
@@ -12,6 +13,7 @@ interface HeroTeamCustomizerProps {
 }
 
 export const HeroTeamCustomizer: React.FC<HeroTeamCustomizerProps> = ({ isOpen, teamInfo, onReady, onLater }) => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
   const [teamName, setTeamName] = useState(teamInfo.name || '');
   const [pdfHeaderColor, setPdfHeaderColor] = useState(teamInfo.pdfHeaderColor || '#FFC107');
   const [logoPreview, setLogoPreview] = useState<string | null>(teamInfo.logo || null);
@@ -58,8 +60,17 @@ export const HeroTeamCustomizer: React.FC<HeroTeamCustomizerProps> = ({ isOpen, 
       onClose={onLater}
       title={<Title order={2} component="div">Customise my team?</Title>}
       size="md"
-      centered
-      styles={{ content: { border: 'none' } }}
+      centered={!isMobile}
+      fullScreen={isMobile}
+      styles={{ 
+        content: { border: 'none' },
+        header: {
+          padding: isMobile ? 'md' : undefined,
+        },
+        body: {
+          padding: isMobile ? 'md' : undefined,
+        },
+      }}
       withCloseButton={false}
     >
       <Stack gap="md">

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   Container,
   Paper,
@@ -37,6 +38,7 @@ import {
 } from '@tabler/icons-react';
 
 const HelpPage: React.FC = () => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
   useEffect(() => {
     const handleScroll = () => {
       const btn = document.getElementById('back-to-top-btn');
@@ -65,10 +67,10 @@ const HelpPage: React.FC = () => {
           ↑ Top
         </Button>
       </Affix>
-      <Container size="xl" py="xl">
+      <Container size={isMobile ? '100%' : 'xl'} px={isMobile ? 0 : undefined} py={isMobile ? 'md' : 'xl'}>
         <Stack gap="xl">
         {/* Header */}
-        <Paper p="xl" withBorder style={{
+        <Paper p={isMobile ? 'sm' : 'xl'} withBorder style={{
           background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
           borderColor: 'rgba(255, 193, 7, 0.2)',
           position: 'relative',
@@ -105,10 +107,7 @@ const HelpPage: React.FC = () => {
         </Paper>
 
         {/* Quick Navigation */}
-        <Card withBorder p="lg" style={{
-          background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.05) 0%, rgba(255, 152, 0, 0.05) 100%)',
-          borderColor: 'rgba(255, 193, 7, 0.15)',
-        }}>
+        <Card withBorder p={isMobile ? 'sm' : 'lg'}>
           <Title 
             order={2} 
             mb="md" 
@@ -186,7 +185,7 @@ const HelpPage: React.FC = () => {
         </Card>
 
         {/* Quick Start Guide */}
-        <Card id="quick-start" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
+        <Card id="quick-start" withBorder p={isMobile ? 'sm' : 'lg'} style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <ThemeIcon size="lg" radius="md" color="blue" variant="light">
               <IconCheck size={20} />
@@ -221,7 +220,7 @@ const HelpPage: React.FC = () => {
         </Card>
 
         {/* FAQ */}
-        <Card id="common-questions" withBorder p="lg" style={{ scrollMarginTop: '120px' }}>
+        <Card id="common-questions" withBorder p={isMobile ? 'sm' : 'lg'} style={{ scrollMarginTop: '120px' }}>
           <Group mb="md">
             <ThemeIcon size="lg" radius="md" color="red" variant="light">
               <IconQuestionMark size={20} />
@@ -579,7 +578,7 @@ const HelpPage: React.FC = () => {
         {/* Support Section */}
         <Card 
           withBorder 
-          p="xl" 
+          p={isMobile ? 'sm' : 'xl'} 
           style={{ 
             textAlign: 'center',
             background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
@@ -589,7 +588,7 @@ const HelpPage: React.FC = () => {
           }}
         >
           <Stack gap="md" align="center">
-            <Group>
+            <Group justify="center">
               <IconCoffee size={40} color="#FFC107" />
               <Title order={3}>Enjoying Lineup Star?</Title>
             </Group>

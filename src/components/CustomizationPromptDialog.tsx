@@ -9,6 +9,7 @@ import {
   ThemeIcon,
   Title
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { IconPalette, IconUsers, IconPhoto } from '@tabler/icons-react';
 import { getLocalizedText } from '../utils/LocalizationUtils';
 
@@ -29,13 +30,24 @@ export const CustomizationPromptDialog: React.FC<CustomizationPromptDialogProps>
   onSkip,
   localizationSettings
 }) => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
+  
   return (
     <Modal
       opened={isOpen}
       onClose={onClose}
       title={<Title order={2}>{`${getLocalizedText('customize', localizationSettings.spelling)} Your Team?`}</Title>}
       size="md"
-      centered
+      centered={!isMobile}
+      fullScreen={isMobile}
+      styles={{
+        header: {
+          padding: isMobile ? 'md' : undefined,
+        },
+        body: {
+          padding: isMobile ? 'md' : undefined,
+        },
+      }}
     >
       <Stack gap="md">
         <Text size="sm" c="dimmed">

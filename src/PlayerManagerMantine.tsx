@@ -19,7 +19,7 @@ import {
   Tooltip
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { 
   IconChartBar, 
   IconEdit, 
@@ -45,6 +45,7 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
   onCSVImport,
   onClearAllPlayers
 }) => {
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [addPlayerOpened, { open: openAddPlayer, close: closeAddPlayer }] = useDisclosure(false);
   const [statsOpened, { open: openStats, close: closeStats }] = useDisclosure(false);
@@ -419,14 +420,14 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
   return (
     <Stack gap="md">
       {/* Header */}
-      <Paper p="md" withBorder style={{
+      <Paper p={isMobile ? "xs" : "md"} withBorder style={{
         background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
         borderColor: 'rgba(255, 193, 7, 0.2)',
         position: 'relative',
         overflow: 'hidden',
       }}>
         <Stack gap="md">
-          <Group justify="center">
+          <Group justify="center" style={{ width: '100%' }}>
             <Title 
               order={1}
               size="h1"
@@ -434,6 +435,8 @@ export const PlayerManager: React.FC<PlayerManagerProps> = ({
                 color: '#FFC107',
                 textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
                 letterSpacing: '0.5px',
+                textAlign: 'center',
+                width: '100%'
               }}
             >
               Player Management

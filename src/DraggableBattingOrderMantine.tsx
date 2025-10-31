@@ -42,6 +42,7 @@ import {
   Menu,
   Tooltip
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   IconGripVertical,
   IconTrash,
@@ -52,7 +53,9 @@ import {
   IconCheck,
   IconBolt,
   IconAlertTriangle,
-  IconChevronDown
+  IconChevronDown,
+  IconArrowUp,
+  IconArrowDown
 } from '@tabler/icons-react';
 import { Player, BattingOrderConfig, UserSettings, TeamInfo } from './StorageService';
 // lazy components are declared after imports (to satisfy import/first)
@@ -99,6 +102,11 @@ interface SortablePlayerCardProps {
   hideConfidenceScore: boolean;
   useFieldingNumbers: boolean;
   showBattingHand: boolean;
+  isMobile: boolean;
+  onMoveUp?: (playerId: string) => void;
+  onMoveDown?: (playerId: string) => void;
+  isFirst: boolean;
+  isLast: boolean;
 }
 
 interface AvailablePlayerCardProps {
@@ -108,16 +116,17 @@ interface AvailablePlayerCardProps {
   onAddToOrder: () => void;
   hideConfidenceScore: boolean;
   showBattingHand: boolean;
+  isMobile: boolean;
 }
 
-const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInOrder, confidence, onAddToOrder, hideConfidenceScore, showBattingHand }) => {
+const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInOrder, confidence, onAddToOrder, hideConfidenceScore, showBattingHand, isMobile }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   return (
     <Card
       shadow="sm"
-      padding="sm"
+      padding={isMobile ? "xs" : "sm"}
       radius="md"
       withBorder
       style={{
@@ -209,13 +218,14 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
             <ActionIcon 
               color="blue" 
               variant="light" 
-              size="sm"
+              size={isMobile ? "md" : "sm"}
+              style={isMobile ? { minWidth: '44px', minHeight: '44px' } : undefined}
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 onAddToOrder();
               }}
             >
-              <IconPlus size={14} />
+              <IconPlus size={isMobile ? 18 : 14} />
             </ActionIcon>
           )}
         </Group>
@@ -234,7 +244,12 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
   onRemove,
   hideConfidenceScore,
   useFieldingNumbers,
-  showBattingHand
+  showBattingHand,
+  isMobile,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast
 }) => {
   const {
     attributes,
@@ -261,22 +276,24 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
       ref={setNodeRef}
       style={style}
       shadow="sm"
-      padding="sm"
+      padding={isMobile ? "xs" : "sm"}
       radius="md"
       withBorder
       data-fielding-position={player.fieldingPosition || 'P'}
     >
       <Group justify="space-between" align="center">
         <Group gap="sm">
-          <ActionIcon
-            {...attributes}
-            {...listeners}
-            variant="subtle"
-            color="gray"
-            size="sm"
-          >
-            <IconGripVertical size={16} />
-          </ActionIcon>
+          {!isMobile && (
+            <ActionIcon
+              {...attributes}
+              {...listeners}
+              variant="subtle"
+              color="gray"
+              size="sm"
+            >
+              <IconGripVertical size={16} />
+            </ActionIcon>
+          )}
           
           <div>
             <Text fw={500} size="md">
@@ -382,14 +399,51 @@ const SortablePlayerCard: React.FC<SortablePlayerCardProps> = ({
               }}
             />
           )}
+
+          {/* Mobile Arrow Buttons */}
+          {isMobile && onMoveUp && onMoveDown && (
+            <>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="md"
+                onClick={() => onMoveUp(player.id)}
+                disabled={isFirst}
+                style={{
+                  opacity: isFirst ? 0.4 : 1,
+                  cursor: isFirst ? 'not-allowed' : 'pointer',
+                  minWidth: '44px',
+                  minHeight: '44px'
+                }}
+              >
+                <IconArrowUp size={20} />
+              </ActionIcon>
+              <ActionIcon
+                variant="subtle"
+                color="gray"
+                size="md"
+                onClick={() => onMoveDown(player.id)}
+                disabled={isLast}
+                style={{
+                  opacity: isLast ? 0.4 : 1,
+                  cursor: isLast ? 'not-allowed' : 'pointer',
+                  minWidth: '44px',
+                  minHeight: '44px'
+                }}
+              >
+                <IconArrowDown size={20} />
+              </ActionIcon>
+            </>
+          )}
           
           <ActionIcon
             color="red"
             variant="light"
-            size="sm"
+            size={isMobile ? "md" : "sm"}
             onClick={() => onRemove(player.id)}
+            style={isMobile ? { minWidth: '44px', minHeight: '44px' } : undefined}
           >
-            <IconTrash size={14} />
+            <IconTrash size={isMobile ? 18 : 14} />
           </ActionIcon>
         </Group>
       </Group>
@@ -432,10 +486,49 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   // removed CanvasPreviewModal state
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [savedOrderName, setSavedOrderName] = useState('');
+  const [menuOpened, setMenuOpened] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 767px)') ?? false;
+  // Check for tablets and mobile devices that should close dropdown when opening modal
+  const shouldCloseMenuOnModalOpen = useMediaQuery('(max-width: 1023px)') ?? false;
+  const isTablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)') ?? false;
 
   // Custom close handler for confidence modal that doesn't affect dropdown
   const handleConfidenceModalClose = () => {
     setShowConfidenceInfo(false);
+  };
+
+  // Handle opening confidence modal - close menu first on mobile/tablet, but not on desktop
+  const handleOpenConfidenceInfo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (shouldCloseMenuOnModalOpen) {
+      setMenuOpened(false);
+      // Small delay to ensure menu closes before modal opens
+      setTimeout(() => {
+        setShowConfidenceInfo(true);
+      }, 100);
+    } else {
+      // Desktop: open modal without closing menu
+      setShowConfidenceInfo(true);
+    }
+  };
+
+  // Mobile move functions
+  const handleMoveUp = (playerId: string) => {
+    const currentIndex = battingOrder.findIndex(p => p.id === playerId);
+    if (currentIndex > 0) {
+      const newOrder = [...battingOrder];
+      [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
+      onBattingOrderChange(newOrder);
+    }
+  };
+
+  const handleMoveDown = (playerId: string) => {
+    const currentIndex = battingOrder.findIndex(p => p.id === playerId);
+    if (currentIndex < battingOrder.length - 1) {
+      const newOrder = [...battingOrder];
+      [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
+      onBattingOrderChange(newOrder);
+    }
   };
 
   // Save toggle states to localStorage
@@ -938,10 +1031,10 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
   );
 
   return (
-    <Stack gap="md">
+    <Stack gap={isMobile ? 16 : "md"}>
 
       {/* Algorithm Selection */}
-      <Paper p="md" withBorder data-section="strategy" style={{
+      <Paper p={isMobile ? "xs" : "md"} withBorder data-section="strategy" style={{
         background: 'linear-gradient(135deg, rgba(156, 39, 176, 0.08) 0%, rgba(255, 152, 0, 0.08) 100%)',
         borderColor: 'rgba(255, 193, 7, 0.2)',
         position: 'relative',
@@ -951,71 +1044,176 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
           <Group justify="center">
             <Title order={1} size="h1" style={{ color: '#FFC107', textShadow: '0 0 15px rgba(255, 193, 7, 0.4)', letterSpacing: '0.5px' }}>Strategy</Title>
           </Group>
-          <Group justify="center" align="center" style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              {/* Graphics above toggle - with manual alignment controls */}
-              <div style={{ 
-                position: 'relative', 
-                width: '100%', 
-                display: 'flex', 
-                justifyContent: 'center',
-                marginBottom: '8px',
-                height: '42px'
-              }}>
+          
+          {/* Desktop Layout */}
+          {!isMobile && (
+            <Group justify="center" align="center" style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                {/* Graphics above toggle - with manual alignment controls */}
                 <div style={{ 
-                  position: 'relative',
-                  display: 'flex',
-                  gap: '0px',
-                  width: '320px', // Match SegmentedControl width
-                  alignItems: 'center',
-                  marginRight: '12px' // Account for the gap between SegmentedControl and ActionIcon
+                  position: 'relative', 
+                  width: '100%', 
+                  display: 'flex', 
+                  justifyContent: 'center',
+                  marginBottom: '8px',
+                  height: '42px'
                 }}>
                   <div style={{ 
-                    width: '160px', // Fixed width
-                    display: 'flex', 
-                    justifyContent: 'center',
+                    position: 'relative',
+                    display: 'flex',
+                    gap: '0px',
+                    width: '320px', // Match SegmentedControl width
                     alignItems: 'center',
-                    opacity: algorithm === 'traditional' ? 1 : 0.4,
-                    filter: algorithm === 'traditional' ? 'none' : 'grayscale(100%)',
-                    transition: 'all 0.3s ease'
+                    marginRight: '12px' // Account for the gap between SegmentedControl and ActionIcon
                   }}>
-                    <img src="/mlblogo.png" alt="MLB" width={64} height={42} style={{ objectFit: 'contain' }} />
-                  </div>
-                  <div style={{ 
-                    width: '160px', // Fixed width
-                    display: 'flex', 
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    opacity: algorithm === 'situational' ? 1 : 0.4,
-                    filter: algorithm === 'situational' ? 'none' : 'grayscale(100%)',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    <img 
-                      src={process.env.PUBLIC_URL + '/situational.png'} 
-                      alt="Situational" 
-                      width={64} 
-                      height={42} 
-                      style={{ objectFit: 'contain' }}
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/situational.png'; }}
-                    />
+                    <div style={{ 
+                      width: '160px', // Fixed width
+                      display: 'flex', 
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      opacity: algorithm === 'traditional' ? 1 : 0.4,
+                      filter: algorithm === 'traditional' ? 'none' : 'grayscale(100%)',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <img src="/mlblogo.png" alt="MLB" width={64} height={42} style={{ objectFit: 'contain' }} />
+                    </div>
+                    <div style={{ 
+                      width: '160px', // Fixed width
+                      display: 'flex', 
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      opacity: algorithm === 'situational' ? 1 : 0.4,
+                      filter: algorithm === 'situational' ? 'none' : 'grayscale(100%)',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <img 
+                        src={process.env.PUBLIC_URL + '/situational.png'} 
+                        alt="Situational" 
+                        width={64} 
+                        height={42} 
+                        style={{ objectFit: 'contain' }}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/situational.png'; }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              {/* Traditional Mantine Toggle */}
-              <Group gap="md" justify="center" style={{ marginLeft: '40px' }}>
-                <SegmentedControl
-                  value={algorithm}
-                  onChange={(value) => setAlgorithm(value as 'traditional' | 'situational')}
-                  data={[
-                    { value: 'traditional', label: 'Modern Baseball' },
-                    { value: 'situational', label: 'Situational Analytics' }
-                  ]}
-                  size="lg"
-                  color={algorithm === 'situational' ? 'red' : 'blue'}
-                  radius="xl"
-                />
                 
+                {/* Traditional Mantine Toggle */}
+                <Group gap="md" justify="center" style={{ marginLeft: '40px' }}>
+                  <SegmentedControl
+                    value={algorithm}
+                    onChange={(value) => setAlgorithm(value as 'traditional' | 'situational')}
+                    data={[
+                      { value: 'traditional', label: 'Modern Baseball' },
+                      { value: 'situational', label: 'Situational Analytics' }
+                    ]}
+                    size="lg"
+                    color={algorithm === 'situational' ? 'red' : 'blue'}
+                    radius="xl"
+                  />
+                  
+                  <Tooltip label="What are these strategies?" position="bottom" withArrow>
+                    <ActionIcon
+                      variant="filled"
+                      color="gray"
+                      onClick={() => setShowStrategyInfo(true)}
+                      size="lg"
+                    >
+                      ?
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+              </div>
+              {!isTablet && (
+                <div style={{ position: 'absolute', right: 0 }}>
+                  <Suspense fallback={null}>
+                    <PDFExportButton
+                      battingOrder={battingOrder}
+                      teamInfo={teamInfo}
+                      algorithm={algorithm}
+                      showFieldingPositions={showFieldingDropdowns}
+                      useFieldingNumbers={useFieldingNumbers}
+                      onOpenCustomization={onOpenCustomization}
+                      players={players}
+                    />
+                  </Suspense>
+                </div>
+              )}
+            </Group>
+          )}
+
+          {/* Mobile Layout */}
+          {isMobile && (
+            <Stack gap={16}>
+              {/* Modern Baseball Button */}
+              <Button
+                type="button"
+                fullWidth
+                size="lg"
+                variant={algorithm === 'traditional' ? 'filled' : 'light'}
+                color={algorithm === 'traditional' ? 'blue' : 'gray'}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setAlgorithm('traditional');
+                }}
+                radius="xl"
+                leftSection={
+                  <img 
+                    src="/mlblogo.png" 
+                    alt="MLB" 
+                    style={{ 
+                      width: '32px', 
+                      height: '21px', 
+                      objectFit: 'contain',
+                      opacity: algorithm === 'traditional' ? 1 : 0.6
+                    }} 
+                  />
+                }
+                style={{
+                  height: '48px',
+                  fontWeight: 600,
+                }}
+              >
+                Modern Baseball
+              </Button>
+
+              {/* Situational Analytics Button */}
+              <Button
+                type="button"
+                fullWidth
+                size="lg"
+                variant={algorithm === 'situational' ? 'filled' : 'light'}
+                color={algorithm === 'situational' ? 'red' : 'gray'}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setAlgorithm('situational');
+                }}
+                radius="xl"
+                leftSection={
+                  <img 
+                    src={process.env.PUBLIC_URL + '/situational.png'} 
+                    alt="Situational" 
+                    style={{ 
+                      width: '32px', 
+                      height: '21px', 
+                      objectFit: 'contain',
+                      opacity: algorithm === 'situational' ? 1 : 0.6
+                    }}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/situational.png'; }}
+                  />
+                }
+                style={{
+                  height: '48px',
+                  fontWeight: 600,
+                }}
+              >
+                Situational Analytics
+              </Button>
+
+              {/* Help Icon - Centered */}
+              <Group justify="center">
                 <Tooltip label="What are these strategies?" position="bottom" withArrow>
                   <ActionIcon
                     variant="filled"
@@ -1027,27 +1225,14 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                   </ActionIcon>
                 </Tooltip>
               </Group>
-            </div>
-            <div style={{ position: 'absolute', right: 0 }}>
-              <Suspense fallback={null}>
-                <PDFExportButton
-                  battingOrder={battingOrder}
-                  teamInfo={teamInfo}
-                  algorithm={algorithm}
-                  showFieldingPositions={showFieldingDropdowns}
-                  useFieldingNumbers={useFieldingNumbers}
-                  onOpenCustomization={onOpenCustomization}
-                  players={players}
-                />
-              </Suspense>
-            </div>
-          </Group>
+            </Stack>
+          )}
         </Stack>
       </Paper>
 
       {/* Batting Order */}
       <Paper 
-        p="md" 
+        p={isMobile ? "xs" : "md"} 
         withBorder 
         data-section="batting-order" 
         data-team-name={teamInfo.name || "BATTING ORDER"} 
@@ -1076,143 +1261,436 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
           </Text>
         </Group>
         
-        <Group justify="space-between" align="center" mb="md">
-          <div>
-            <Title 
-              order={1} 
-              size="h1"
-              mb="md"
-              style={{
-                color: '#FFC107',
-                textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
-                letterSpacing: '0.5px',
-              }}
-            >
-              Batting Order
-            </Title>
-            <Text size="sm" c="dimmed">{battingOrder.length} players</Text>
-          </div>
-          <Group>
-            <Button
-              leftSection={<IconRefresh size={16} />}
-              onClick={generateBattingOrder}
-              size="lg"
-              radius="xl"
-              disabled={players.length === 0}
-              style={{
-                background: players.length > 0 
-                  ? 'linear-gradient(45deg, #FFC107, #FFD54F)'
-                  : undefined,
-                color: players.length > 0 ? '#000' : undefined,
-                fontWeight: 700,
-                boxShadow: players.length > 0 
-                  ? '0 2px 10px rgba(255, 193, 7, 0.6)' 
-                  : undefined,
-                transition: 'all 0.3s ease',
-              }}
-              styles={{
-                root: {
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 20px rgba(255, 193, 7, 0.6)',
+        {isMobile ? (
+          <Stack gap="md" mb="md" align="center">
+            <div style={{ textAlign: 'center', width: '100%' }}>
+              <Title 
+                order={1} 
+                size="h1"
+                mb="md"
+                style={{
+                  color: '#FFC107',
+                  textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                Batting Order
+              </Title>
+              <Text size="sm" c="dimmed">{battingOrder.length} players</Text>
+            </div>
+            <Group>
+              <Button
+                leftSection={<IconRefresh size={16} />}
+                onClick={generateBattingOrder}
+                size="lg"
+                radius="xl"
+                disabled={players.length === 0}
+                style={{
+                  background: players.length > 0 
+                    ? 'linear-gradient(45deg, #FFC107, #FFD54F)'
+                    : undefined,
+                  color: players.length > 0 ? '#000' : undefined,
+                  fontWeight: 700,
+                  boxShadow: players.length > 0 
+                    ? '0 2px 10px rgba(255, 193, 7, 0.6)' 
+                    : undefined,
+                  transition: 'all 0.3s ease',
+                }}
+                styles={{
+                  root: {
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 6px 20px rgba(255, 193, 7, 0.6)',
+                    },
                   },
-                },
-              }}
-            >
-              Generate Batting Order
-            </Button>
-            <Button
-              leftSection={<IconX size={16} />}
-              onClick={clearOrder}
-              variant="light"
-              color="red"
-              disabled={battingOrder.length === 0}
-              radius="xl"
-            >
-              Clear Order
-            </Button>
-            <Menu shadow="md" width={300}>
-              <Menu.Target>
-                <Button
-                  variant="light"
-                  color="gray"
-                  size="sm"
-                  rightSection={<IconChevronDown size={14} />}
-                >
-                  Advanced Options
-                </Button>
-              </Menu.Target>
-
-              <Menu.Dropdown>
-                <Menu.Item>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Switch
-                      label="Show Fielding Positions"
-                      checked={showFieldingDropdowns}
-                      onChange={(event) => setShowFieldingDropdowns(event.currentTarget.checked)}
-                      labelPosition="right"
-                      size="sm"
-                      w="100%"
-                    />
-                  </div>
-                </Menu.Item>
-                <Menu.Item>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Switch
-                      label="Fielding Position Numbers"
-                      checked={useFieldingNumbers}
-                      onChange={(event) => setUseFieldingNumbers(event.currentTarget.checked)}
-                      labelPosition="right"
-                      size="sm"
-                      w="100%"
-                    />
-                  </div>
-                </Menu.Item>
-                <Menu.Divider />
-                <Menu.Item>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Group gap="xs" justify="space-between" align="center" wrap="nowrap">
+                }}
+              >
+                Generate Batting Order
+              </Button>
+              <Suspense fallback={null}>
+                <PDFExportButton
+                  battingOrder={battingOrder}
+                  teamInfo={teamInfo}
+                  algorithm={algorithm}
+                  showFieldingPositions={showFieldingDropdowns}
+                  useFieldingNumbers={useFieldingNumbers}
+                  onOpenCustomization={onOpenCustomization}
+                  players={players}
+                />
+              </Suspense>
+              <Button
+                leftSection={<IconX size={16} />}
+                onClick={clearOrder}
+                variant="light"
+                color="red"
+                disabled={battingOrder.length === 0}
+                radius="xl"
+              >
+                Clear Order
+              </Button>
+              <Menu 
+                shadow="md" 
+                width={300}
+                opened={shouldCloseMenuOnModalOpen ? menuOpened : undefined}
+                onChange={shouldCloseMenuOnModalOpen ? setMenuOpened : undefined}
+              >
+                <Menu.Target>
+                  <Button
+                    variant="light"
+                    color="gray"
+                    size="sm"
+                    rightSection={<IconChevronDown size={14} />}
+                  >
+                    Advanced Options
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item>
+                    <div onClick={(e) => e.stopPropagation()}>
                       <Switch
-                        label="Show Confidence Scores"
-                        checked={!hideConfidenceScore}
-                        onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
+                        label="Show Fielding Positions"
+                        checked={showFieldingDropdowns}
+                        onChange={(event) => setShowFieldingDropdowns(event.currentTarget.checked)}
+                        labelPosition="right"
+                        size="sm"
+                        w="100%"
+                      />
+                    </div>
+                  </Menu.Item>
+                  <Menu.Item>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        label="Fielding Position Numbers"
+                        checked={useFieldingNumbers}
+                        onChange={(event) => setUseFieldingNumbers(event.currentTarget.checked)}
+                        labelPosition="right"
+                        size="sm"
+                        w="100%"
+                      />
+                    </div>
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Group gap="xs" justify="space-between" align="center" wrap="nowrap">
+                        <Switch
+                          label="Show Confidence Scores"
+                          checked={!hideConfidenceScore}
+                          onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
+                          labelPosition="right"
+                          size="sm"
+                        />
+                        <Tooltip label="What are these?" position="bottom" withArrow>
+                          <ActionIcon
+                            variant="filled"
+                            color="gray"
+                            onClick={handleOpenConfidenceInfo}
+                            size="xs"
+                            style={{ flexShrink: 0 }}
+                          >
+                            ?
+                          </ActionIcon>
+                        </Tooltip>
+                      </Group>
+                    </div>
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        label="Show Righty/Lefty"
+                        checked={showBattingHand}
+                        onChange={(event) => setShowBattingHand(event.currentTarget.checked)}
+                        labelPosition="right"
+                        size="sm"
+                        w="100%"
+                      />
+                    </div>
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </Group>
+          </Stack>
+        ) : (
+          <Stack gap={isTablet ? "sm" : "md"} mb="md">
+            <Group justify="space-between" align="center">
+              <div>
+                <Title 
+                  order={1} 
+                  size="h1"
+                  mb="md"
+                  style={{
+                    color: '#FFC107',
+                    textShadow: '0 0 15px rgba(255, 193, 7, 0.4)',
+                    letterSpacing: '0.5px',
+                  }}
+                >
+                  Batting Order
+                </Title>
+                <Text size="sm" c="dimmed">{battingOrder.length} players</Text>
+              </div>
+              {!isTablet && (
+                <Group>
+                  <Button
+                    leftSection={<IconRefresh size={16} />}
+                    onClick={generateBattingOrder}
+                    size="lg"
+                    radius="xl"
+                    disabled={players.length === 0}
+                    style={{
+                      background: players.length > 0 
+                        ? 'linear-gradient(45deg, #FFC107, #FFD54F)'
+                        : undefined,
+                      color: players.length > 0 ? '#000' : undefined,
+                      fontWeight: 700,
+                      boxShadow: players.length > 0 
+                        ? '0 2px 10px rgba(255, 193, 7, 0.6)' 
+                        : undefined,
+                      transition: 'all 0.3s ease',
+                    }}
+                    styles={{
+                      root: {
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 6px 20px rgba(255, 193, 7, 0.6)',
+                        },
+                      },
+                    }}
+                  >
+                    Generate Batting Order
+                  </Button>
+                  <Button
+                leftSection={<IconX size={16} />}
+                onClick={clearOrder}
+                variant="light"
+                color="red"
+                disabled={battingOrder.length === 0}
+                radius="xl"
+              >
+                Clear Order
+              </Button>
+              <Menu 
+                shadow="md" 
+                width={300}
+                opened={shouldCloseMenuOnModalOpen ? menuOpened : undefined}
+                onChange={shouldCloseMenuOnModalOpen ? setMenuOpened : undefined}
+              >
+                <Menu.Target>
+                  <Button
+                    variant="light"
+                    color="gray"
+                    size="sm"
+                    rightSection={<IconChevronDown size={14} />}
+                  >
+                    Advanced Options
+                  </Button>
+                </Menu.Target>
+                <Menu.Dropdown>
+                  <Menu.Item>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        label="Show Fielding Positions"
+                        checked={showFieldingDropdowns}
+                        onChange={(event) => setShowFieldingDropdowns(event.currentTarget.checked)}
                         labelPosition="right"
                         size="sm"
                       />
-                      <Tooltip label="What are these?" position="bottom" withArrow>
-                        <ActionIcon
-                          variant="filled"
-                          color="gray"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowConfidenceInfo(true);
-                          }}
-                          size="xs"
-                          style={{ flexShrink: 0 }}
-                        >
-                          ?
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  </div>
-                </Menu.Item>
-                <Menu.Divider />
-                <Menu.Item>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Switch
-                      label="Show Righty/Lefty"
-                      checked={showBattingHand}
-                      onChange={(event) => setShowBattingHand(event.currentTarget.checked)}
-                      labelPosition="right"
-                      size="sm"
-                      w="100%"
+                    </div>
+                  </Menu.Item>
+                  <Menu.Item>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        label="Use Fielding Numbers"
+                        checked={useFieldingNumbers}
+                        onChange={(event) => setUseFieldingNumbers(event.currentTarget.checked)}
+                        labelPosition="right"
+                        size="sm"
+                        disabled={!showFieldingDropdowns}
+                      />
+                    </div>
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Group gap="xs" align="center">
+                        <Switch
+                          label="Show Confidence Scores"
+                          checked={!hideConfidenceScore}
+                          onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
+                          labelPosition="right"
+                          size="sm"
+                        />
+                        <Tooltip label="What are these?" position="bottom" withArrow>
+                          <ActionIcon
+                            variant="filled"
+                            color="gray"
+                            onClick={handleOpenConfidenceInfo}
+                            size="xs"
+                            style={{ flexShrink: 0 }}
+                          >
+                            ?
+                          </ActionIcon>
+                        </Tooltip>
+                      </Group>
+                    </div>
+                  </Menu.Item>
+                  <Menu.Divider />
+                  <Menu.Item>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        label="Show Righty/Lefty"
+                        checked={showBattingHand}
+                        onChange={(event) => setShowBattingHand(event.currentTarget.checked)}
+                        labelPosition="right"
+                        size="sm"
+                        w="100%"
+                      />
+                    </div>
+                  </Menu.Item>
+                </Menu.Dropdown>
+              </Menu>
+            </Group>
+              )}
+            </Group>
+            {isTablet && (
+              <Stack gap="sm" align="flex-start">
+                <Group justify="space-between" style={{ width: '100%' }}>
+                  <Button
+                    leftSection={<IconRefresh size={16} />}
+                    onClick={generateBattingOrder}
+                    size="lg"
+                    radius="xl"
+                    disabled={players.length === 0}
+                    style={{
+                      background: players.length > 0 
+                        ? 'linear-gradient(45deg, #FFC107, #FFD54F)'
+                        : undefined,
+                      color: players.length > 0 ? '#000' : undefined,
+                      fontWeight: 700,
+                      boxShadow: players.length > 0 
+                        ? '0 2px 10px rgba(255, 193, 7, 0.6)' 
+                        : undefined,
+                      transition: 'all 0.3s ease',
+                    }}
+                    styles={{
+                      root: {
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 6px 20px rgba(255, 193, 7, 0.6)',
+                        },
+                      },
+                    }}
+                  >
+                    Generate Batting Order
+                  </Button>
+                  <Suspense fallback={null}>
+                    <PDFExportButton
+                      battingOrder={battingOrder}
+                      teamInfo={teamInfo}
+                      algorithm={algorithm}
+                      showFieldingPositions={showFieldingDropdowns}
+                      useFieldingNumbers={useFieldingNumbers}
+                      onOpenCustomization={onOpenCustomization}
+                      players={players}
                     />
-                  </div>
-                </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          </Group>
-        </Group>
+                  </Suspense>
+                </Group>
+                <Group gap="sm">
+                  <Button
+                    leftSection={<IconX size={16} />}
+                    onClick={clearOrder}
+                    variant="light"
+                    color="red"
+                    disabled={battingOrder.length === 0}
+                    radius="xl"
+                  >
+                    Clear Order
+                  </Button>
+                  <Menu 
+                    shadow="md" 
+                    width={300}
+                    opened={shouldCloseMenuOnModalOpen ? menuOpened : undefined}
+                    onChange={shouldCloseMenuOnModalOpen ? setMenuOpened : undefined}
+                  >
+                    <Menu.Target>
+                      <Button
+                        variant="light"
+                        color="gray"
+                        size="sm"
+                        rightSection={<IconChevronDown size={14} />}
+                      >
+                        Advanced Options
+                      </Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                      <Menu.Item>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            label="Show Fielding Positions"
+                            checked={showFieldingDropdowns}
+                            onChange={(event) => setShowFieldingDropdowns(event.currentTarget.checked)}
+                            labelPosition="right"
+                            size="sm"
+                          />
+                        </div>
+                      </Menu.Item>
+                      <Menu.Item>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            label="Use Fielding Numbers"
+                            checked={useFieldingNumbers}
+                            onChange={(event) => setUseFieldingNumbers(event.currentTarget.checked)}
+                            labelPosition="right"
+                            size="sm"
+                            disabled={!showFieldingDropdowns}
+                          />
+                        </div>
+                      </Menu.Item>
+                      <Menu.Divider />
+                      <Menu.Item>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Group gap="xs" align="center">
+                            <Switch
+                              label="Show Confidence Scores"
+                              checked={!hideConfidenceScore}
+                              onChange={(event) => setHideConfidenceScore(!event.currentTarget.checked)}
+                              labelPosition="right"
+                              size="sm"
+                            />
+                            <Tooltip label="What are these?" position="bottom" withArrow>
+                              <ActionIcon
+                                variant="filled"
+                                color="gray"
+                                onClick={handleOpenConfidenceInfo}
+                                size="xs"
+                                style={{ flexShrink: 0 }}
+                              >
+                                ?
+                              </ActionIcon>
+                            </Tooltip>
+                          </Group>
+                        </div>
+                      </Menu.Item>
+                      <Menu.Divider />
+                      <Menu.Item>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Switch
+                            label="Show Righty/Lefty"
+                            checked={showBattingHand}
+                            onChange={(event) => setShowBattingHand(event.currentTarget.checked)}
+                            labelPosition="right"
+                            size="sm"
+                            w="100%"
+                          />
+                        </div>
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
+                </Group>
+              </Stack>
+            )}
+          </Stack>
+        )}
 
         {battingOrder.length === 0 ? (
           <Center h={200}>
@@ -1226,7 +1704,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
           </Center>
         ) : (
           <DndContext
-            sensors={sensors}
+            sensors={isMobile ? [] : sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
@@ -1234,7 +1712,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
               items={battingOrder.map(p => p.id)}
               strategy={verticalListSortingStrategy}
             >
-              <Stack gap="sm">
+              <Stack gap={isMobile ? "sm" : "md"}>
                 {battingOrder.map((player, index) => (
                   <SortablePlayerCard
                     key={player.id}
@@ -1275,6 +1753,11 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                     hideConfidenceScore={hideConfidenceScore}
                     useFieldingNumbers={useFieldingNumbers}
                     showBattingHand={showBattingHand}
+                    isMobile={isMobile}
+                    onMoveUp={handleMoveUp}
+                    onMoveDown={handleMoveDown}
+                    isFirst={index === 0}
+                    isLast={index === battingOrder.length - 1}
                   />
                 ))}
               </Stack>
@@ -1286,7 +1769,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
       {/* Available Players */}
       {availablePlayers.length > 0 && (
         <Paper 
-          p="md" 
+          p={isMobile ? "xs" : "md"} 
           withBorder 
           data-section="available-players"
           style={{
@@ -1317,6 +1800,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 onAddToOrder={() => addToOrder(player)}
                 hideConfidenceScore={hideConfidenceScore}
                 showBattingHand={showBattingHand}
+                isMobile={isMobile}
               />
             ))}
           </SimpleGrid>
@@ -1325,7 +1809,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
 
       {/* Saved Orders */}
       {savedBattingOrders.length > 0 && (
-        <Paper p="md" withBorder data-section="saved-orders">
+        <Paper p={isMobile ? "xs" : "md"} withBorder data-section="saved-orders">
           <Group justify="space-between" align="center" mb="md">
             <Title 
               order={4}
