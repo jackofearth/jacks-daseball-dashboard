@@ -15,6 +15,7 @@ interface PDFExportButtonProps {
   showFieldingPositions: boolean;
   useFieldingNumbers: boolean;
   onOpenCustomization?: () => void;
+  players?: Player[];
 }
 
 export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
@@ -23,7 +24,8 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
   algorithm,
   showFieldingPositions,
   useFieldingNumbers,
-  onOpenCustomization
+  onOpenCustomization,
+  players = []
 }) => {
   const pdfContentRef = useRef<HTMLDivElement>(null);
   const [showCustomizationPrompt, setShowCustomizationPrompt] = useState(false);
@@ -284,13 +286,24 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
       const prevPosition = element.style.position;
       const prevLeft = element.style.left;
       const prevTop = element.style.top;
-      const prevVisibility = element.style.visibility;
+      const prevOpacity = element.style.opacity;
+      const prevZIndex = element.style.zIndex;
 
       element.style.display = 'block';
       element.style.position = 'fixed';
       element.style.left = '0px';
       element.style.top = '0px';
-      element.style.visibility = 'hidden';
+      element.style.opacity = '1';
+      element.style.zIndex = '-9999';
+      element.style.visibility = 'visible';
+      element.style.width = '210mm';
+      element.style.minHeight = '297mm';
+
+      // Wait for the element to be rendered and ensure fonts are loaded
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Force a reflow to ensure rendering
+      void element.offsetHeight;
 
       // Render to canvas with high quality
       const canvas = await html2canvas(element, {
@@ -299,6 +312,20 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
         logging: false,
         useCORS: true,
         allowTaint: true,
+        width: element.scrollWidth || undefined,
+        height: element.scrollHeight || undefined,
+        onclone: (clonedDoc) => {
+          // Ensure the cloned element is visible
+          const clonedElement = clonedDoc.querySelector(`[data-pdf-content]`) || 
+                                Array.from(clonedDoc.querySelectorAll('div')).find(el => 
+                                  el.style.width === '210mm' || el.style.width.includes('210mm')
+                                );
+          if (clonedElement) {
+            (clonedElement as HTMLElement).style.visibility = 'visible';
+            (clonedElement as HTMLElement).style.opacity = '1';
+            (clonedElement as HTMLElement).style.display = 'block';
+          }
+        }
       });
 
       // Restore previous styles
@@ -306,7 +333,8 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
       element.style.position = prevPosition;
       element.style.left = prevLeft;
       element.style.top = prevTop;
-      element.style.visibility = prevVisibility;
+      element.style.opacity = prevOpacity;
+      element.style.zIndex = prevZIndex;
 
       // Create PDF
       const imgData = canvas.toDataURL('image/png');
@@ -404,18 +432,28 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
     }
   };
 
+  const hasPlayers = (players?.length ?? 0) > 0 || battingOrder.length > 0;
+  const isDisabled = !hasPlayers;
+
   return (
     <>
       <Group justify="flex-end" style={{ position: 'relative' }}>
         <Button
           leftSection={<IconDownload size={16} />}
           onClick={generatePDF}
+          disabled={isDisabled}
           radius="xl"
           style={{
-            background: 'linear-gradient(45deg, #FFC107, #FFD54F)',
-            color: '#000',
+            background: isDisabled 
+              ? 'rgba(255, 193, 7, 0.3)' 
+              : 'linear-gradient(45deg, #FFC107, #FFD54F)',
+            color: isDisabled ? '#666' : '#000',
             border: 'none',
-            boxShadow: '0 2px 10px rgba(255, 193, 7, 0.3)'
+            boxShadow: isDisabled 
+              ? 'none' 
+              : '0 2px 10px rgba(255, 193, 7, 0.3)',
+            cursor: isDisabled ? 'not-allowed' : 'pointer',
+            opacity: isDisabled ? 0.6 : 1
           }}
         >
           Export PDF
@@ -425,14 +463,18 @@ export const PDFExportButton: React.FC<PDFExportButtonProps> = ({
       {/* Hidden PDF content that gets rendered to canvas */}
       <div
         ref={pdfContentRef}
+        data-pdf-content="true"
             style={{
               display: 'none',
               position: 'absolute',
               left: '-9999px',
               width: '210mm', // A4 width
+              minHeight: '297mm', // A4 height
               backgroundColor: '#ffffff',
               padding: '10mm',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+              color: '#000000',
+              boxSizing: 'border-box'
             }}
       >
         {logoDataUrl && (

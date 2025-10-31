@@ -107,9 +107,10 @@ interface AvailablePlayerCardProps {
   confidence: { level: string; label: string; color: string; icon: string; penalty: number };
   onAddToOrder: () => void;
   hideConfidenceScore: boolean;
+  showBattingHand: boolean;
 }
 
-const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInOrder, confidence, onAddToOrder, hideConfidenceScore }) => {
+const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInOrder, confidence, onAddToOrder, hideConfidenceScore, showBattingHand }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
@@ -129,7 +130,16 @@ const AvailablePlayerCard: React.FC<AvailablePlayerCardProps> = ({ player, isInO
       <Group justify="space-between" align="center">
         <div>
           <Text fw={500} size="sm" c={isInOrder ? 'dimmed' : 'blue'}>
-            {player.name}
+            {player.name} {showBattingHand && (
+              <Badge 
+                size="xs" 
+                variant="filled" 
+                color={player.battingHand === 'L' ? 'red' : 'blue'}
+                style={{ marginLeft: '8px' }}
+              >
+                {player.battingHand || 'R'}
+              </Badge>
+            )}
           </Text>
           <Group gap="xs" mt={4}>
             <Text size="xs" c="dimmed">AVG: {player.avg.toFixed(3)}</Text>
@@ -1027,6 +1037,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                   showFieldingPositions={showFieldingDropdowns}
                   useFieldingNumbers={useFieldingNumbers}
                   onOpenCustomization={onOpenCustomization}
+                  players={players}
                 />
               </Suspense>
             </div>
@@ -1305,6 +1316,7 @@ export const DraggableBattingOrder: React.FC<DraggableBattingOrderProps> = ({
                 confidence={getConfidenceLevel(player.pa || 0)}
                 onAddToOrder={() => addToOrder(player)}
                 hideConfidenceScore={hideConfidenceScore}
+                showBattingHand={showBattingHand}
               />
             ))}
           </SimpleGrid>
